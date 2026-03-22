@@ -1,20 +1,18 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
-
-/* Tailwind v4 source globs (include `@/` folder used in this repo) */
-@source "../../src/**/*.{js,ts,jsx,tsx,mdx}";
-@source "../../components/**/*.{js,ts,jsx,tsx,mdx}";
-@source "../../@/**/*.{js,ts,jsx,tsx,mdx}";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --color-luxury-ivory: var(--luxury-ivory);
+  --color-luxury-sand: var(--luxury-sand);
+  --color-luxury-gold: var(--luxury-gold);
+  --color-luxury-gold-deep: var(--luxury-gold-deep);
+  --color-luxury-muted: var(--luxury-muted);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -44,25 +42,39 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-  --animate-blink-cursor: blink-cursor 1.2s step-end infinite;
-  @keyframes blink-cursor {
-  0%, 49% {
-    opacity: 1;
+  --radius-xl: calc(var(--radius) + 4px);
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  @keyframes marquee {
+  from {
+    transform: translateX(0);
     }
-  50%, 100% {
-    opacity: 0;
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+    }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
     }
   }
 }
 
 :root {
+  --radius: 0.625rem;
+  --section-space: clamp(4rem, 7vw, 7rem);
+  --luxury-shadow-value: 0 30px 90px -55px rgba(120, 83, 33, 0.48);
+  --luxury-ivory: #fffaf4;
+  --luxury-sand: #f4ece2;
+  --luxury-gold: #d9b77a;
+  --luxury-gold-deep: #8a6738;
+  --luxury-muted: #6d6256;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -81,12 +93,11 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -98,6 +109,12 @@
 }
 
 .dark {
+  --luxury-shadow-value: 0 30px 90px -55px rgba(0, 0, 0, 0.85);
+  --luxury-ivory: #171311;
+  --luxury-sand: #241d19;
+  --luxury-gold: #caa15f;
+  --luxury-gold-deep: #f3d39a;
+  --luxury-muted: #c5baad;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -116,11 +133,11 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -137,8 +154,33 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: linear-gradient(180deg, var(--luxury-ivory) 0%, #ffffff 50%);
   }
-  html {
-    @apply font-sans;
+}
+
+@layer utilities {
+  .luxury-shell {
+    @apply mx-auto max-w-7xl px-6 sm:px-8 lg:px-10;
+  }
+
+  .luxury-section {
+    padding-top: var(--section-space);
+    padding-bottom: var(--section-space);
+  }
+
+  .luxury-panel {
+    @apply rounded-[2rem] border border-white/70 bg-white/70 backdrop-blur;
+  }
+
+  .luxury-shadow {
+    box-shadow: var(--luxury-shadow-value);
+  }
+
+  .sidebar-outline-shadow {
+    box-shadow: 0 0 0 1px hsl(var(--sidebar-border));
+  }
+
+  .hover\:sidebar-accent-shadow:hover {
+    box-shadow: 0 0 0 1px hsl(var(--sidebar-accent));
   }
 }

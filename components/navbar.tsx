@@ -17,14 +17,12 @@ import {
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Separator } from "./ui/separator";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 const Navbar = () => {
   const [logoUrl, setLogoUrl] = useState<string>("/images/logo.avif");
-  const { data: session, status } = useSession();
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -44,12 +42,7 @@ const Navbar = () => {
   const router = useRouter();
 
   const handleAccountClick = () => {
-    if (status === "loading") return; // wait until we know
-    if (session) {
-      router.push("/user/dashboard");
-    } else {
-      router.push("/user/login");
-    }
+    router.push("/account/login");
   };
 
   const categories = useMemo(
@@ -170,7 +163,7 @@ const Navbar = () => {
                         onClick={handleAccountClick}
                         className="text-xs text-slate-600 hover:underline dark:text-slate-300"
                       >
-                        {session ? "Go to dashboard" : "Sign in"}
+                        Customer account
                       </button>
                     </div>
                   </div>

@@ -11,10 +11,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MagicCard } from "@/components/magicui/magic-card";
+import { MagicCard } from "@/components/ui/magic-card";
 import { useTheme } from "next-themes";
 import { useState } from "react";
-import { div } from "framer-motion/client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 

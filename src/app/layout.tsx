@@ -3,9 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { AuthProvider } from "./provider";
-import Navbar from "@/components/navbar";
-import Footer from "@/@/components/footer";
 import { Toaster } from "react-hot-toast";
+import SiteShell from "@/components/site-shell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,15 +30,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
-          <div className="flex min-h-screen flex-col">
-            <Navbar />
-            <div className="flex-1">{children}</div>
-            <Footer />
-          </div>
+          <SiteShell>{children}</SiteShell>
           <Toaster position="bottom-right" />
         </AuthProvider>
       </body>
     </html>
   );
 }
-

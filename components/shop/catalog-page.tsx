@@ -1,26 +1,17 @@
-"use client";
-
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
-import React from "react";
-import { ChevronDown, Heart, SlidersHorizontal } from "lucide-react";
+import {
+  ArrowRight,
+  Gem,
+  ShieldCheck,
+  Sparkles,
+  Truck,
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-export type CatalogProduct = {
-  id: string;
-  name: string;
-  price: number;
-  imageUrl?: string;
-  badge?: string;
-  lowStockText?: string;
-};
+import type { ShopPageRecord } from "@/lib/storefront";
 
 type CatalogPageProps = {
-  title: string;
-  resultCount?: number;
-  products?: CatalogProduct[];
+  page: ShopPageRecord;
 };
 
 function formatINR(value: number) {
@@ -28,283 +19,323 @@ function formatINR(value: number) {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
-  })
-    .format(value)
-    .replace("₹", "₹ ");
+  }).format(value);
 }
 
-const demoProducts: CatalogProduct[] = [
+const servicePillars = [
   {
-    id: "p1",
-    name: "Everyday Charm Diamond Stud Earrings",
-    price: 105541,
-    badge: "",
-    lowStockText: "Only 1 left!",
+    title: "Certified Craft",
+    description: "Carefully finished jewellery with quality-led detailing.",
+    icon: ShieldCheck,
   },
   {
-    id: "p2",
-    name: "Charming Paisley Pendant",
-    price: 55772,
-    badge: "EXPERT'S CHOICE",
-    lowStockText: "Only 1 left!",
+    title: "Style Guidance",
+    description: "Signature edits curated for gifting, layering, and occasion looks.",
+    icon: Sparkles,
   },
   {
-    id: "p3",
-    name: "Classic Gold Earrings",
-    price: 86437,
-  },
-  {
-    id: "p4",
-    name: "Minimal Gold Necklace",
-    price: 124900,
-  },
-  {
-    id: "p5",
-    name: "Statement Diamond Ring",
-    price: 210450,
-  },
-  {
-    id: "p6",
-    name: "Elegant Daily Wear Pendant",
-    price: 48990,
+    title: "Secure Delivery",
+    description: "Protected packaging and dependable delivery for every order.",
+    icon: Truck,
   },
 ];
 
-const chips = [
-  "₹25,000 - ₹50,000",
-  "Gifts For Him",
-  "Women",
-  "Gold Jewellery",
-];
-
-export function CatalogPage({ title, resultCount = 28627, products }: CatalogPageProps) {
-  const [wishlisted, setWishlisted] = React.useState<Record<string, boolean>>(
-    {},
-  );
-  const [sortOpen, setSortOpen] = React.useState(false);
-  const list = products?.length ? products : demoProducts;
-
+export function CatalogPage({ page }: CatalogPageProps) {
   return (
-    <main className="bg-white pb-24 text-slate-900 dark:bg-neutral-950 dark:text-slate-50">
-      {/* Top hero strip */}
-      <section className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 lg:px-8">
-        <h1 className="text-center font-serif text-4xl font-semibold tracking-tight sm:text-5xl">
-          {title}
-        </h1>
+    <main
+      className="pb-24"
+      style={{
+        backgroundImage: "linear-gradient(180deg, #fffaf4 0%, #ffffff 44%, #f7efe6 100%)",
+      }}
+    >
+      <section className="px-4 pb-8 pt-10 sm:px-6 lg:px-8">
+        <div className="luxury-shell">
+          <div className="mb-6 flex items-center gap-2 text-sm text-stone-500">
+            <Link href="/" className="transition hover:text-stone-900">
+              Home
+            </Link>
+            <span>/</span>
+            <Link href="/shop/jewellery" className="transition hover:text-stone-900">
+              Shop
+            </Link>
+            <span>/</span>
+            <span className="font-medium text-stone-900">{page.title}</span>
+          </div>
 
-        <div className="mx-auto mt-8 grid max-w-4xl grid-cols-3 gap-6">
-          {[
-            { label: "14 Kt", tone: "from-stone-100 to-white" },
-            { label: "18 Kt", tone: "from-amber-50 to-white" },
-            { label: "22 Kt", tone: "from-yellow-50 to-white" },
-          ].map((k) => (
-            <div key={k.label} className="text-center">
-              <div
-                className={cn(
-                  "relative mx-auto aspect-square w-full max-w-[220px] overflow-hidden rounded-2xl border border-black/5 bg-gradient-to-br shadow-sm dark:border-white/10 dark:from-neutral-900 dark:to-neutral-950",
-                  k.tone,
-                )}
-              >
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(122,31,36,0.12),transparent_60%)]" />
+          <div className="overflow-hidden rounded-[2.5rem] border border-white/80 bg-white/70 luxury-shadow backdrop-blur">
+            <div className="grid gap-8 p-4 lg:grid-cols-[1.05fr_0.95fr] lg:p-5">
+              <div className="relative min-h-[420px] overflow-hidden rounded-[2rem] bg-stone-950">
                 <Image
-                  src="/images/logo.avif"
-                  alt=""
-                  width={300}
-                  height={300}
-                  className="absolute inset-0 m-auto h-24 w-24 rounded-full opacity-15"
+                  src={page.heroImageUrl ?? "/images/sbg-women.jpg"}
+                  alt={page.heroTitle}
+                  fill
+                  priority
+                  className="object-cover"
                 />
-              </div>
-              <div className="mt-3 text-lg font-medium">{k.label}</div>
-            </div>
-          ))}
-        </div>
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(100deg, rgba(20, 17, 15, 0.82) 0%, rgba(20, 17, 15, 0.4) 48%, rgba(20, 17, 15, 0.15) 100%)",
+                  }}
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 28%)",
+                  }}
+                />
+                <div className="relative flex h-full flex-col justify-between p-7 text-white sm:p-10">
+                  <div>
+                    {page.heroEyebrow ? (
+                      <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] backdrop-blur">
+                        <Gem className="size-4" />
+                        {page.heroEyebrow}
+                      </div>
+                    ) : null}
+                    <h1
+                      className="mt-6 max-w-2xl text-4xl leading-tight sm:text-5xl"
+                      style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+                    >
+                      {page.heroTitle}
+                    </h1>
+                    <p className="mt-5 max-w-xl text-base leading-8 text-white/85 sm:text-lg">
+                      {page.heroDescription}
+                    </p>
+                  </div>
 
-        <div className="mt-10 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <Link href="/" className="hover:underline">
-            Home
-          </Link>
-          <span className="text-slate-400">›</span>
-          <span className="font-medium text-[#7a1f24]">{title}</span>
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    <Link
+                      href={page.heroCtaHref}
+                      className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-stone-950 transition hover:bg-stone-100"
+                    >
+                      {page.heroCtaLabel}
+                      <ArrowRight className="size-4" />
+                    </Link>
+                    <Link
+                      href="/contact"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/15"
+                    >
+                      Book Consultation
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="luxury-panel p-6">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--luxury-gold-deep)]">
+                    Category Overview
+                  </p>
+                  <h2 className="mt-4 text-3xl font-semibold tracking-tight text-stone-950">
+                    {page.title}
+                  </h2>
+                  <p className="mt-3 text-base leading-8 text-[var(--luxury-muted)]">
+                    {page.subtitle}
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="luxury-panel p-5">
+                    <p className="text-sm font-medium text-stone-500">Results</p>
+                    <div className="mt-3 text-3xl font-semibold text-stone-950">
+                      {page.resultCount.toLocaleString("en-IN")}
+                    </div>
+                  </div>
+                  <div className="luxury-panel p-5">
+                    <p className="text-sm font-medium text-stone-500">Highlights</p>
+                    <div className="mt-3 text-3xl font-semibold text-stone-950">
+                      {page.features.length}
+                    </div>
+                  </div>
+                  <div className="luxury-panel p-5">
+                    <p className="text-sm font-medium text-stone-500">Featured Picks</p>
+                    <div className="mt-3 text-3xl font-semibold text-stone-950">
+                      {page.products.length}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="rounded-[2rem] border border-stone-200 bg-stone-950 p-6 text-stone-100"
+                  style={{ boxShadow: "0 30px 90px -55px rgba(28, 25, 23, 0.92)" }}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300">
+                    Styling Notes
+                  </p>
+                  <p className="mt-4 text-sm leading-7 text-stone-300">
+                    Pair this edit with layering-friendly essentials, gifting-ready
+                    pieces, and signature styles designed to feel elevated from day
+                    to occasion.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Results section */}
-      <section className="mx-auto mt-8 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-white p-6 shadow-[0_30px_80px_-70px_rgba(2,6,23,0.35)] ring-1 ring-black/5 dark:bg-neutral-950 dark:ring-white/10 sm:p-8">
+      <section className="luxury-section pt-10">
+        <div className="luxury-shell">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="flex items-baseline gap-3">
-                <h2 className="font-serif text-3xl font-semibold tracking-tight">
-                  {title}
-                </h2>
-                <span className="text-sm text-slate-500 dark:text-slate-300">
-                  ({resultCount} results)
-                </span>
-              </div>
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--luxury-gold-deep)]">
+                Shop Highlights
+              </p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-stone-950 sm:text-4xl">
+                Explore the key stories inside {page.title}.
+              </h2>
             </div>
-
-            <div className="flex items-center justify-between gap-3 sm:justify-end">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-neutral-950 dark:hover:bg-white/5"
-              >
-                <SlidersHorizontal className="size-4 text-slate-600 dark:text-slate-300" />
-                Filter
-                <ChevronDown className="size-4 text-slate-500" />
-              </button>
-
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setSortOpen((v) => !v)}
-                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-medium shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-neutral-950 dark:hover:bg-white/5"
-                >
-                  <span className="text-slate-500 dark:text-slate-300">
-                    Sort By:
-                  </span>
-                  <span className="font-semibold">Best Matches</span>
-                  <ChevronDown
-                    className={cn(
-                      "size-4 text-slate-500 transition-transform",
-                      sortOpen ? "rotate-180" : "rotate-0",
-                    )}
-                  />
-                </button>
-                {sortOpen ? (
-                  <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-lg dark:border-white/10 dark:bg-neutral-950">
-                    {["Best Matches", "Price: Low to High", "Price: High to Low"].map(
-                      (label) => (
-                        <button
-                          type="button"
-                          key={label}
-                          className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 dark:hover:bg-white/5"
-                          onClick={() => setSortOpen(false)}
-                        >
-                          {label}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            {chips.map((label) => (
-              <button
-                key={label}
-                type="button"
-                className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-neutral-950 dark:hover:bg-white/5"
-              >
-                <span className="grid size-6 place-items-center rounded-full bg-[#f3e7e8] text-[#7a1f24]">
-                  +
-                </span>
-                {label}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="text-sm font-semibold text-[#7a1f24] hover:underline"
+            <Link
+              href={page.heroCtaHref}
+              className="inline-flex items-center gap-2 text-sm font-medium text-stone-900"
             >
-              +Show More
-            </button>
+              View full collection
+              <ArrowRight className="size-4" />
+            </Link>
           </div>
 
-          <div className="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {list.map((p) => {
-              const isWishlisted = !!wishlisted[p.id];
-              return (
-                <article
-                  key={p.id}
-                  className="group relative overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:shadow-md dark:border-white/10 dark:bg-neutral-950"
-                >
-                  <button
-                    type="button"
-                    aria-label="Wishlist"
-                    className="absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full bg-white/90 shadow-sm ring-1 ring-black/5 backdrop-blur transition hover:bg-white dark:bg-neutral-950/70 dark:ring-white/10"
-                    onClick={() =>
-                      setWishlisted((prev) => ({ ...prev, [p.id]: !prev[p.id] }))
-                    }
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {page.features.map((feature) => (
+              <Link
+                key={feature.id}
+                href={feature.href}
+                className="group overflow-hidden rounded-[2rem] border border-white/70 bg-white/70 luxury-shadow"
+              >
+                <div className="relative aspect-[0.9] overflow-hidden">
+                  <Image
+                    src={feature.imageUrl}
+                    alt={feature.title}
+                    fill
+                    className="object-cover transition duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                </div>
+                <div className="p-5">
+                  <h3
+                    className="text-2xl text-stone-950"
+                    style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
                   >
-                    <Heart
-                      className={cn(
-                        "size-4",
-                        isWishlisted
-                          ? "fill-[#7a1f24] text-[#7a1f24]"
-                          : "text-slate-500",
-                      )}
-                    />
-                  </button>
+                    {feature.title}
+                  </h3>
+                  <div className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-stone-900">
+                    Explore
+                    <ArrowRight className="size-4 transition group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
-                  {p.badge ? (
-                    <div className="absolute left-4 top-4 z-10 inline-flex items-center rounded-full bg-[#d2696f] px-3 py-1 text-xs font-semibold tracking-wide text-white">
-                      {p.badge}
+      <section className="luxury-section pt-0">
+        <div className="luxury-shell">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--luxury-gold-deep)]">
+                Featured Products
+              </p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-stone-950 sm:text-4xl">
+                Signature pieces selected for this category.
+              </h2>
+            </div>
+            <p className="max-w-md text-sm leading-7 text-[var(--luxury-muted)]">
+              Pricing, imagery, and merchandising copy are powered from the
+              category record so each collection can be updated independently.
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {page.products.map((product) => (
+              <article
+                key={product.id}
+                className="group overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 luxury-shadow"
+              >
+                <div
+                  className="relative aspect-[1.08] overflow-hidden"
+                  style={{
+                    backgroundImage: "linear-gradient(180deg, #f8f1e9 0%, #fffdf9 100%)",
+                  }}
+                >
+                  {product.imageUrl ? (
+                    <Image
+                      src={product.imageUrl}
+                      alt={product.name}
+                      fill
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        backgroundImage:
+                          "radial-gradient(circle at 20% 20%, rgba(138, 103, 56, 0.16), transparent 34%), radial-gradient(circle at 80% 40%, rgba(217, 183, 122, 0.28), transparent 32%)",
+                      }}
+                    />
+                  )}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage:
+                        "linear-gradient(180deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.18) 100%)",
+                    }}
+                  />
+                  {product.badge ? (
+                    <div className="absolute left-4 top-4 rounded-full bg-stone-950 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
+                      {product.badge}
                     </div>
                   ) : null}
-
-                  <div className="relative aspect-[4/3] w-full bg-[#f6f6f6] dark:bg-neutral-900">
-                    {p.imageUrl ? (
-                      <Image
-                        src={p.imageUrl}
-                        alt={p.name}
-                        fill
-                        sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(122,31,36,0.18),transparent_55%),radial-gradient(circle_at_80%_30%,rgba(214,164,88,0.22),transparent_55%)]" />
-                    )}
-                  </div>
-
-                  <div className="p-5">
-                    <div className="font-serif text-xl font-semibold leading-snug">
-                      {p.name}
+                </div>
+                <div className="p-6">
+                  <h3
+                    className="text-2xl leading-snug text-stone-950"
+                    style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+                  >
+                    {product.name}
+                  </h3>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <div className="text-xl font-semibold text-stone-950">
+                      {formatINR(product.price)}
                     </div>
-                    <div className="mt-2 flex items-baseline gap-3">
-                      <div className="text-xl font-semibold tabular-nums">
-                        {formatINR(p.price)}
-                      </div>
-                      {p.lowStockText ? (
-                        <div className="text-sm font-medium text-[#7a1f24]">
-                          {p.lowStockText}
-                        </div>
-                      ) : null}
-                    </div>
+                    {product.lowStockText ? (
+                      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-900">
+                        {product.lowStockText}
+                      </span>
+                    ) : null}
                   </div>
-                </article>
-              );
-            })}
+                  <Link
+                    href={page.heroCtaHref}
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-stone-900"
+                  >
+                    View this collection
+                    <ArrowRight className="size-4 transition group-hover:translate-x-1" />
+                  </Link>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Floating helpers (as in screenshot) */}
-      <div className="fixed bottom-6 left-6 z-40 hidden md:block">
-        <Button
-          type="button"
-          className="h-11 rounded-none bg-[#7a1f24] px-6 text-white hover:bg-[#6a1a1f]"
-        >
-          Anniversary Gift Finder
-        </Button>
-      </div>
-
-      <div className="fixed bottom-8 left-1/2 z-40 hidden w-[620px] -translate-x-1/2 md:block">
-        <div className="flex items-center justify-between rounded-full border border-[#d8b48a] bg-white px-3 py-2 shadow-lg">
-          <div className="inline-flex items-center gap-3">
-            <span className="rounded-full bg-[#d8b48a] px-3 py-1 text-xs font-semibold text-white">
-              New
-            </span>
-            <span className="text-sm text-slate-800">
-              Welcome back! Continue your wedding journey with us.
-            </span>
+      <section className="luxury-section pt-0">
+        <div className="luxury-shell">
+          <div className="grid gap-4 md:grid-cols-3">
+            {servicePillars.map((item) => (
+              <div key={item.title} className="luxury-panel p-6 luxury-shadow">
+                <item.icon className="size-5 text-[var(--luxury-gold-deep)]" />
+                <h3 className="mt-4 text-lg font-semibold text-stone-950">
+                  {item.title}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-[var(--luxury-muted)]">
+                  {item.description}
+                </p>
+              </div>
+            ))}
           </div>
-          <span className="grid size-9 place-items-center rounded-full bg-[#fff8f1] text-[#7a1f24]">
-            →
-          </span>
         </div>
-      </div>
+      </section>
     </main>
   );
 }
-

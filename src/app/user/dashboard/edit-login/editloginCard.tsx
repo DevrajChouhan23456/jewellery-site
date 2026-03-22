@@ -1,4 +1,8 @@
-"use client";
+﻿"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,10 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MagicCard } from "@/components/magicui/magic-card";
-import { useTheme } from "next-themes";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { MagicCard } from "@/components/ui/magic-card";
 
 export function EditLoginCard() {
   const [currentUsername, setCurrentUsername] = useState("");
@@ -22,60 +23,74 @@ export function EditLoginCard() {
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { theme } = useTheme();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (!newUsername && !newPassword) {
       setError("Enter at least a new username or password to update.");
       return;
     }
 
-    const res = await fetch("/api/user/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        currentUsername,
-        currentPassword,
-        newUsername: newUsername || null,
-        newPassword: newPassword || null,
-      }),
-    });
+    setLoading(true);
 
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/user/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentUsername,
+          currentPassword,
+          newUsername: newUsername || null,
+          newPassword: newPassword || null,
+        }),
+      });
+
       const data = await res.json();
-      setError(data.error || "Something went wrong");
-    } else {
-      router.push("/user/dashboard");
+
+      if (!res.ok) {
+        setError(data.error || "Something went wrong.");
+        return;
+      }
+
+      setSuccess("Admin credentials updated successfully.");
+      router.refresh();
+      router.push("/admin/dashboard");
+    } catch {
+      setError("Unable to update credentials right now.");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <Card className="p-0 max-w-sm w-full shadow-lg border-none rounded-2xl">
+    <Card className="w-full max-w-md rounded-[2rem] border border-white/70 bg-white/75 p-0 luxury-shadow backdrop-blur">
       <MagicCard
         gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}
-        className="p-0 rounded-2xl"
+        className="rounded-[2rem] p-0"
       >
         <form onSubmit={handleSubmit}>
-          <CardHeader className="border-b border-border p-4">
-            <CardTitle>Update Login Details</CardTitle>
+          <CardHeader className="border-b border-stone-200 p-5">
+            <CardTitle>Update Admin Credentials</CardTitle>
             <CardDescription>
-              Change your username, password, or both.
+              Change the dashboard username, password, or both.
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="p-4 space-y-6">
-            {/* Current Credentials */}
+          <CardContent className="space-y-6 p-5">
             <div className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="currentUsername">Current Username</Label>
                 <Input
                   id="currentUsername"
                   type="text"
-                  placeholder="your_current_username"
+                  placeholder="Current admin username"
                   value={currentUsername}
                   onChange={(e) => setCurrentUsername(e.target.value)}
                   required
@@ -86,7 +101,7 @@ export function EditLoginCard() {
                 <Input
                   id="currentPassword"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="Current admin password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
@@ -94,36 +109,45 @@ export function EditLoginCard() {
               </div>
             </div>
 
-            {/* New Credentials */}
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="newUsername">New Username (optional)</Label>
+                <Label htmlFor="newUsername">New Username</Label>
                 <Input
                   id="newUsername"
                   type="text"
-                  placeholder="new_username"
+                  placeholder="Optional new username"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="newPassword">New Password (optional)</Label>
+                <Label htmlFor="newPassword">New Password</Label>
                 <Input
                   id="newPassword"
                   type="password"
-                  placeholder="new strong password"
+                  placeholder="Optional new password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
             </div>
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error ? (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </p>
+            ) : null}
+
+            {success ? (
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {success}
+              </p>
+            ) : null}
           </CardContent>
 
-          <CardFooter className="p-4 border-t border-border">
-            <Button className="w-full" type="submit">
-              Save Changes
+          <CardFooter className="border-t border-stone-200 p-5">
+            <Button className="w-full" type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Save Admin Changes"}
             </Button>
           </CardFooter>
         </form>

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, Image as ImageIcon, ArrowLeft } from "lucide-react";
@@ -31,18 +32,20 @@ export default function LogoUpload() {
   return (
     <div className="p-6 max-w-xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/user/dashboard">
+        <Link href="/admin/dashboard">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Upload Logo</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Update Store Logo</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>School Logo</CardTitle>
-          <CardDescription>Upload a new logo for your website branding.</CardDescription>
+          <CardTitle>Brand Logo</CardTitle>
+          <CardDescription>
+            Upload a new logo for the jewellery storefront branding.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,7 +69,14 @@ export default function LogoUpload() {
             </div>
 
             {preview ? (
-              <img src={preview} alt="Logo preview" className="h-20 w-auto" />
+              <Image
+                src={preview}
+                alt="Logo preview"
+                width={160}
+                height={80}
+                unoptimized
+                className="h-20 w-auto"
+              />
             ) : (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <ImageIcon className="h-4 w-4" /> No image selected

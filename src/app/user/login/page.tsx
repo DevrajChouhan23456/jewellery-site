@@ -1,11 +1,5 @@
-import React from 'react'
-import { MagicCardDemo } from '@/app/user/login/loginCard'
-function LoginPage() {
-  return (
-    <div className='flex justify-center items-center h-screen '>
-      <MagicCardDemo/>
-    </div>
-  )
-}
+import { redirect } from "next/navigation";
 
-export default LoginPage
+export default async function LoginPage() {
+  redirect("/admin/login");
+}

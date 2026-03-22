@@ -112,7 +112,10 @@ export const CardCarousel: React.FC<CarouselProps> = ({
             key={index}
             className="!w-[260px] sm:!w-[420px] lg:!w-[620px]"
           >
-            <div className="group relative overflow-hidden rounded-2xl border border-black/10 bg-white/60 shadow-[0_20px_60px_-35px_rgba(2,6,23,0.45)] ring-1 ring-white/30 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/10">
+            <div
+              className="group relative overflow-hidden rounded-2xl border border-black/10 bg-white/60 ring-1 ring-white/30 backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/10"
+              style={{ boxShadow: "0 20px 60px -35px rgba(2, 6, 23, 0.45)" }}
+            >
               <div className="relative aspect-[16/10] w-full">
                 <Image
                   src={image.src}

@@ -11,7 +11,7 @@ export default function EditLoginPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Back Button */}
       <div className="p-4 sm:p-6 flex items-center">
-        <Link href="/user/dashboard">
+        <Link href="/admin/dashboard">
           <ArrowLeft className="w-6 h-6 sm:w-7 sm:h-7 text-gray-700 hover:text-gray-900 transition-transform hover:scale-110" />
         </Link>
       </div>

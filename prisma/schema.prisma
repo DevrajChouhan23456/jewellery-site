@@ -1,14 +1,18 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Logo {
@@ -19,8 +23,83 @@ model Logo {
 
 model CuratedItem {
   id        String   @id @default(cuid())
+  section   String   @default("gender")
   title     String
-  image     String
+  subtitle  String?
+  image     String?
   link      String
+  badge     String?
+  order     Int      @default(0)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HomepageSection {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  eyebrow     String?
+  title       String
+  subtitle    String?
+  description String?
+  ctaLabel    String?
+  ctaHref     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Slider {
+  id          String   @id @default(cuid())
+  imageUrl    String
+  badge       String?
+  title       String?
+  subtitle    String?
+  ctaLabel    String?
+  ctaHref     String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ShopPage {
+  id              String            @id @default(cuid())
+  slug            String            @unique
+  title           String
+  subtitle        String
+  heroEyebrow     String?
+  heroTitle       String
+  heroDescription String
+  heroImageUrl    String?
+  heroCtaLabel    String            @default("Shop Now")
+  heroCtaHref     String            @default("/shop/jewellery")
+  resultCount     Int               @default(0)
+  features        ShopPageFeature[]
+  products        ShopPageProduct[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model ShopPageFeature {
+  id         String   @id @default(cuid())
+  shopPageId String
+  title      String
+  imageUrl   String
+  href       String
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  shopPage   ShopPage @relation(fields: [shopPageId], references: [id], onDelete: Cascade)
+}
+
+model ShopPageProduct {
+  id           String   @id @default(cuid())
+  shopPageId   String
+  name         String
+  price        Int
+  imageUrl     String?
+  badge        String?
+  lowStockText String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  shopPage     ShopPage @relation(fields: [shopPageId], references: [id], onDelete: Cascade)
 }

@@ -1,10 +1,11 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { ArrowBigLeft, ArrowBigRight, ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 type SliderImage = {
-  id: number;
+  id: string;
   imageUrl: string;
 };
 
@@ -37,7 +38,7 @@ export default function SliderManager() {
     }
   };
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: string) {
     try {
       const res = await fetch(`/api/slider/${id}`, {
         method: "DELETE",
@@ -56,7 +57,7 @@ export default function SliderManager() {
     <div className="w-full max-w-3xl mx-auto">
       {/* Back button */}
     <div className="my-5 mx-5 flex">
-     <Link href="/user/dashboard"><ArrowLeft className="w-15 hover:scale-120"/></Link>
+     <Link href="/admin/dashboard"><ArrowLeft className="w-15 hover:scale-120"/></Link>
       </div>
 
       <div className="text-center mb-6">
@@ -85,9 +86,12 @@ export default function SliderManager() {
               setCurrent((prev) => (prev - 1 + images.length) % images.length)
             }
           />
-          <img
+          <Image
             src={images[current].imageUrl}
             alt="slider"
+            width={1200}
+            height={720}
+            unoptimized
             className="rounded-xl w-full max-h-[400px] object-contain"
           />
           <ArrowBigRight
