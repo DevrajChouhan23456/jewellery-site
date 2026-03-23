@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 
+import { uploadImage } from "@/lib/cloudinary";
 import prisma from "@/lib/prisma";
 
 export async function GET() {
   try {
     const sliders = await prisma.slider.findMany({
       orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        imageUrl: true,
+      },
     });
 
     return NextResponse.json(sliders);
@@ -30,10 +35,16 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");
     const mimeType = file.type || "image/jpeg";
-    const imageUrl = `data:${mimeType};base64,${base64}`;
+    const imageUrl = await uploadImage(`data:${mimeType};base64,${base64}`, {
+      folder: "slider",
+    });
 
     const newImage = await prisma.slider.create({
       data: { imageUrl },
+      select: {
+        id: true,
+        imageUrl: true,
+      },
     });
 
     return NextResponse.json(newImage, { status: 201 });

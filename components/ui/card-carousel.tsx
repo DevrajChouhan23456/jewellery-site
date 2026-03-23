@@ -16,7 +16,7 @@ import {
   Pagination,
 } from "swiper/modules";
 
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 interface CarouselProps {
   images: { src: string; alt: string }[];

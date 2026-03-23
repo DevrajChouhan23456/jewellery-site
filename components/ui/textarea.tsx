@@ -1,1 +1,1 @@
-export { Textarea } from "@/components/ui/ui/textarea";
+export { Textarea } from "@/components/ui/magicui/textarea";

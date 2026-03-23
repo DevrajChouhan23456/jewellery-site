@@ -1,7 +1,6 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Gem } from "lucide-react";
-
+import { ArrowRight } from "lucide-react";
 import type { HomepageCard, HomepageSectionContent } from "@/lib/storefront";
 
 type NewArrivalsShowcaseProps = {
@@ -13,111 +12,101 @@ export default function NewArrivalsShowcase({
   section,
   items,
 }: NewArrivalsShowcaseProps) {
+  const itemLeft = items[0];
+  const itemRightTop = items[1];
+  const itemRightBottom = items[2];
+
   return (
-    <section className="luxury-section">
-      <div className="luxury-shell">
-        <div
-          className="overflow-hidden rounded-[2.5rem] luxury-shadow"
-          style={{
-            backgroundImage:
-              "linear-gradient(90deg, #b1a793 0%, #c6b79f 28%, #a99673 58%, #b89f71 100%)",
-          }}
-        >
-          <div className="grid gap-8 px-7 py-10 sm:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-            <div className="max-w-2xl text-white">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur">
-                <Gem className="size-4" />
-                {section.eyebrow || "500+ New Items"}
-              </div>
-              <h2
-                className="mt-6 text-5xl leading-none sm:text-6xl"
-                style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
-              >
-                {section.title}
-              </h2>
-              <p className="mt-5 max-w-xl text-xl leading-9 text-white/95">
-                {section.description}
-              </p>
-              <Link
-                href={section.ctaHref || "/shop/jewellery"}
-                className="mt-7 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-stone-900 transition hover:bg-stone-100"
-              >
-                {section.ctaLabel || "Explore Latest Launches"}
-                <ArrowRight className="size-4" />
-              </Link>
-            </div>
+    <section className="w-full bg-white py-16 md:py-24">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-10 md:mb-12">
+          <h2 className="text-3xl md:text-[42px] font-serif tracking-tight text-[#333] mb-2">
+            {section.title || "Tanishq Collections"}
+          </h2>
+          <p className="text-gray-500 text-base md:text-lg font-serif">
+            {section.subtitle || section.description || "Explore our newly launched collection"}
+          </p>
+        </div>
 
-            <div className="relative min-h-[260px]">
-              <div
-                className="absolute inset-0 rounded-[2rem]"
-                style={{
-                  backgroundImage:
-                    "radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.26), transparent 24%), radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.16), transparent 24%)",
-                }}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-6 md:h-[600px] lg:h-[700px]">
+          {/* Left Large Item */}
+          {itemLeft && (
+            <Link
+              href={itemLeft.link}
+              className="relative w-full h-[400px] md:h-full rounded-[24px] overflow-hidden group block"
+            >
+              <Image
+                src={itemLeft.image || "/images/sbg-women.jpg"}
+                alt={itemLeft.title}
+                fill
+                className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
               />
-              <div className="relative ml-auto flex max-w-xl justify-end">
-                <div className="relative aspect-[1.2] w-full max-w-[30rem] overflow-hidden rounded-[2rem] border border-white/30 bg-white/10 backdrop-blur">
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundImage:
-                        "radial-gradient(circle at top left, rgba(255, 255, 255, 0.2), transparent 28%), linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.02))",
-                    }}
-                  />
-                  <div className="absolute left-8 top-10 h-40 w-40 rounded-full border border-white/20 bg-white/10 blur-[1px]" />
-                  <div className="absolute right-8 bottom-12 h-28 w-28 rounded-full border border-white/20 bg-white/8 blur-[1px]" />
-                  <div
-                    className="absolute left-[18%] top-[14%] h-56 w-56 rounded-full border-[18px] border-[#b18437]"
-                    style={{ boxShadow: "0 18px 40px rgba(0, 0, 0, 0.18)" }}
-                  />
-                  <div
-                    className="absolute right-[8%] top-[40%] h-40 w-40 rounded-full border-[14px] border-[#d0a958]"
-                    style={{ boxShadow: "0 18px 40px rgba(0, 0, 0, 0.18)" }}
-                  >
-                    <div
-                      className="absolute left-1/2 top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
-                      style={{ boxShadow: "0 0 0 8px rgba(255, 255, 255, 0.18)" }}
-                    />
-                  </div>
-                </div>
+              <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+              
+              <div className="absolute inset-x-0 bottom-0 p-8 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex flex-col justify-end items-start h-1/2">
+                {itemLeft.badge && (
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200 mb-3 block">
+                    {itemLeft.badge}
+                  </span>
+                )}
+                <h3 className="text-3xl lg:text-4xl text-white font-serif drop-shadow-md mb-2">
+                  {itemLeft.title}
+                </h3>
+                {itemLeft.subtitle && (
+                  <p className="text-white/90 text-sm lg:text-base font-sans line-clamp-2 max-w-sm">
+                    {itemLeft.subtitle}
+                  </p>
+                )}
               </div>
-            </div>
-          </div>
+            </Link>
+          )}
 
-          <div className="grid gap-7 px-7 pb-10 sm:px-10 lg:grid-cols-2">
-            {items.map((item) => (
+          {/* Right Stacked Items */}
+          <div className="flex flex-col gap-6 h-full">
+            {itemRightTop && (
               <Link
-                key={item.id}
-                href={item.link}
-                className="group relative overflow-hidden rounded-[2rem] border border-white/30 bg-white/8 p-3 backdrop-blur"
+                href={itemRightTop.link}
+                className="relative w-full h-[250px] md:flex-1 rounded-[24px] overflow-hidden group block bg-[#f4e7e2]"
               >
-                <div className="relative aspect-[1.7] overflow-hidden rounded-[1.5rem]">
-                  <Image
-                    src={item.image ?? "/images/sbg-women.jpg"}
-                    alt={item.title}
-                    fill
-                    className="object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-6">
-                    {item.badge ? (
-                      <p className="text-xs font-semibold uppercase tracking-[0.26em] text-amber-200">
-                        {item.badge}
-                      </p>
-                    ) : null}
-                    <h3
-                      className="mt-2 text-2xl text-white"
-                      style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
-                    >
-                      {item.title}
-                    </h3>
-                    <p className="mt-3 max-w-md text-sm leading-7 text-white/80">
-                      {item.subtitle}
-                    </p>
-                  </div>
+                <Image
+                  src={itemRightTop.image || "/images/sbg-men.webp"}
+                  alt={itemRightTop.title}
+                  fill
+                  className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                <div className="absolute right-8 top-1/2 -translate-y-1/2 max-w-[200px] text-right pointer-events-none">
+                  {/* Matching the "Stunning every Ear" text overlay aesthetic */}
+                  <h3 className="text-3xl text-[#5a1c22] font-serif italic drop-shadow-sm mb-1 leading-tight">
+                    {itemRightTop.title}
+                  </h3>
+                  <p className="text-[#5a1c22]/80 text-sm font-sans flex items-center justify-end gap-1 mt-2 font-medium">
+                    Explore <ArrowRight className="size-3" />
+                  </p>
                 </div>
               </Link>
-            ))}
+            )}
+
+            {/* Bottom Stacked Image */}
+            <Link
+              href={itemRightBottom?.link || "/shop"}
+              className="relative w-full h-[250px] md:flex-1 rounded-[24px] overflow-hidden group block bg-[#822122]"
+            >
+              <Image
+                src={itemRightBottom?.image || "/images/sbg-kids.webp"}
+                alt={itemRightBottom?.title || "More Collections"}
+                fill
+                className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105 opacity-80 mix-blend-luminosity"
+              />
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-8 bg-black/10 group-hover:bg-black/0 transition-colors duration-500">
+                <h3 className="text-3xl text-white font-serif italic drop-shadow-sm mb-3">
+                  {itemRightBottom?.title || "Discover Our Legacy"}
+                </h3>
+                <span className="bg-white/20 backdrop-blur-sm border border-white/40 text-white px-6 py-2 text-xs font-bold tracking-[0.15em] transition hover:bg-white/30 uppercase mt-2 group-hover:bg-white text-[#832729]">
+                  Shop Now
+                </span>
+              </div>
+            </Link>
           </div>
         </div>
       </div>

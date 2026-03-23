@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 type ShopPageRouteProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ sub?: string }>;
 };
 
 export async function generateMetadata({
@@ -34,13 +35,17 @@ export async function generateMetadata({
   };
 }
 
-export default async function ShopPageRoute({ params }: ShopPageRouteProps) {
+export default async function ShopPageRoute({
+  params,
+  searchParams,
+}: ShopPageRouteProps) {
   const { slug } = await params;
+  const { sub } = await searchParams;
   const page = await getShopPageData(slug);
 
   if (!page) {
     notFound();
   }
 
-  return <CatalogPage page={page} />;
+  return <CatalogPage page={page} selectedSubcategory={sub} />;
 }

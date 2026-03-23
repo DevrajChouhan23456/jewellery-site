@@ -474,6 +474,14 @@ async function seedShopPages() {
         ...product,
         order: product.order ?? index + 1,
         shopPageId: shopPage.id,
+        images: product.imageUrl ? [product.imageUrl, product.imageUrl, product.imageUrl] : [],
+        description: `The ${product.name} is a stunning piece of fine jewellery crafted to perfection. Whether purchased as a celebration gift or a personal milestone, its timeless silhouette and luminous finish endure across generations.`,
+        specifications: {
+          "Metal Purity": "18KT Gold",
+          "Gross Weight": `${(Math.random() * 5 + 2).toFixed(2)} g`,
+          "Theme": page.title,
+          "Occasion": "Everyday, Celebration, Gifting"
+        }
       })),
     });
   }

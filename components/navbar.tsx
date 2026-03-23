@@ -3,9 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ChevronDown,
+  Clock3,
   Diamond,
-  Gem,
   Gift,
   Heart,
   Menu,
@@ -13,19 +12,37 @@ import {
   ShoppingBag,
   Store,
   User,
+  Camera,
+  Mic,
+  Sparkles,
+  CircleDollarSign,
+  Sun,
+  Layers,
+  HeartHandshake,
+  Ear,
+  Circle,
+  LogOut,
+  MessageSquare,
+  WalletCards,
 } from "lucide-react";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { Separator } from "./ui/separator";
-import { useRouter } from "next/navigation";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { cn } from "../lib/utils";
+import { useCartStore } from "@/lib/store";
+
 const Navbar = () => {
   const [logoUrl, setLogoUrl] = useState<string>("/images/logo.avif");
   const [query, setQuery] = useState("");
+  const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [allowHoverMega, setAllowHoverMega] = useState(false);
+  const closeMenuTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeAccountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  const { openCart, getUniqueItemsCount } = useCartStore();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const controller = new AbortController();
     fetch("/api/logo", { signal: controller.signal })
       .then((res) => res.json())
@@ -39,159 +56,383 @@ const Navbar = () => {
     return () => controller.abort();
   }, []);
 
-  const router = useRouter();
-
-  const handleAccountClick = () => {
-    router.push("/account/login");
-  };
+  useEffect(() => {
+    const updateInteractionMode = () => {
+      setAllowHoverMega(window.innerWidth >= 1280);
+    };
+    updateInteractionMode();
+    window.addEventListener("resize", updateInteractionMode);
+    return () => {
+      window.removeEventListener("resize", updateInteractionMode);
+      if (closeMenuTimer.current) clearTimeout(closeMenuTimer.current);
+      if (closeAccountTimer.current) clearTimeout(closeAccountTimer.current);
+    };
+  }, []);
 
   const categories = useMemo(
     () => [
-      { label: "All Jewellery", href: "/shop/jewellery", icon: Gem },
-      { label: "Gold", href: "/shop/gold", icon: Store },
+      { label: "All Jewellery", href: "/shop/jewellery", icon: Sparkles },
+      { label: "Gold", href: "/shop/gold", icon: CircleDollarSign },
       { label: "Diamond", href: "/shop/diamond", icon: Diamond },
-      { label: "Earrings", href: "/shop/earrings", icon: Gem },
-      { label: "Rings", href: "/shop/rings", icon: Gem },
-      { label: "Daily Wear", href: "/shop/glamdays", icon: Gem },
-      { label: "Collections", href: "/shop/thejoydressing", icon: Gem },
-      { label: "Wedding", href: "/shop/jewellery", icon: Gem },
+      { label: "Earrings", href: "/shop/earrings", icon: Ear },
+      { label: "Rings", href: "/shop/rings", icon: Circle },
+      { label: "Daily Wear", href: "/shop/glamdays", icon: Sun },
+      { label: "Collections", href: "/shop/thejoydressing", icon: Layers },
+      { label: "Wedding", href: "/shop/jewellery", icon: HeartHandshake },
       { label: "Gifting", href: "/shop/gifting", icon: Gift },
-      { label: "More", href: "/shop/jewellery", icon: ChevronDown },
+      { label: "More", href: "/shop/jewellery", icon: Menu },
     ],
     []
   );
 
+  const megaMenuData = useMemo(
+    () =>
+      ({
+        "All Jewellery": {
+          filters: ["Category", "Price", "Occasion", "Gender", "Metal"],
+          groups: [
+            ["All Jewellery", "Earrings", "Pendants", "Finger Rings"],
+            ["Mangalsutra", "Chains", "Nose Pin", "Necklaces"],
+            ["Necklace Set", "Bangles", "Bracelets", "Pendants & Earring Set"],
+          ],
+          promo: {
+            title: "Elan - My World. My Story.",
+            subtitle: "Jewellery for every moment, crafted to shine.",
+            cta: "Explore now",
+          },
+          ribbon: "Jewellery for Every Moment - See It All Here!",
+        },
+        Gold: {
+          filters: ["Category", "Price", "Occasion", "Gold Coin", "Men", "Metal"],
+          groups: [
+            ["All Gold", "Gold Earrings", "Gold Rings", "Gold Nose Pins"],
+            ["Gold Bangles", "Gold Chains", "Gold Engagement Rings", "Gold Kadas"],
+            ["Gold Bracelets", "Gold Pendants", "Gold Necklaces", "Gold Mangalsutras"],
+          ],
+          promo: {
+            title: "Intricately handcrafted",
+            subtitle: "Heritage-inspired pieces for modern elegance.",
+            cta: "Explore now",
+          },
+          ribbon: "From Classic to Contemporary",
+        },
+        Diamond: {
+          filters: ["Category", "Price", "Occasion", "Gender", "Metal & Stones"],
+          groups: [
+            ["All Diamond", "Diamond Earrings", "Diamond Rings", "Diamond Nose Pins"],
+            ["Diamond Bracelets", "Diamond Chains", "Diamond Pendants", "Diamond Bangles"],
+            ["Diamond Necklaces", "Diamond Sets", "Solitaires", "Wedding Diamonds"],
+          ],
+          promo: {
+            title: "Timeless brilliance",
+            subtitle: "Signature diamond styles made to celebrate you.",
+            cta: "Explore now",
+          },
+          ribbon: "Sparkle in every design",
+        },
+        Earrings: {
+          filters: ["Category", "Price", "Occasion", "Gender", "Metal & Stones"],
+          groups: [
+            ["All Earrings", "Studs", "Hoops", "Drops"],
+            ["Chandbalis", "Jhumkas", "Daily Wear", "Office Wear"],
+            ["Party Edit", "Bridal Edit", "Solitaire Earrings", "Kids Earrings"],
+          ],
+          promo: {
+            title: "Find your perfect pair",
+            subtitle: "From subtle studs to statement silhouettes.",
+            cta: "Shop now",
+          },
+          ribbon: "Ear candy for every style",
+        },
+        Rings: {
+          filters: ["Category", "Price", "Occasion", "Gender", "Metal & Stones"],
+          groups: [
+            ["All Rings", "Casual Rings", "Couple Rings", "Diamond Engagement Rings"],
+            ["Engagement Rings", "Gold Engagement Rings", "Men's Rings", "Platinum Rings"],
+            ["Solitaire Rings", "Wedding Bands", "Stacking Rings", "Cocktail Rings"],
+          ],
+          promo: {
+            title: "A symbol of commitment",
+            subtitle: "Celebrate love and milestones with a ring that speaks.",
+            cta: "Shop now",
+          },
+          ribbon: "Celebrate love & milestones",
+        },
+        "Daily Wear": {
+          filters: ["Category", "Price", "Occasion", "Gender", "Metal"],
+          groups: [
+            ["All Daily Wear", "Pendants", "Rings", "Earrings"],
+            ["Chains", "Bracelets", "Necklaces", "Office Wear"],
+            ["Lightweight Gold", "Minimal Diamond", "Everyday Classics", "Gift Picks"],
+          ],
+          promo: {
+            title: "Style, every day",
+            subtitle: "Light, elegant and effortless pieces for daily looks.",
+            cta: "Explore now",
+          },
+          ribbon: "Daily looks that always shine",
+        },
+        Collections: {
+          filters: ["Category", "New Arrivals", "Price", "Occasion", "Theme"],
+          groups: [
+            ["All Collections", "Bridal Edit", "Festive Edit", "Office Edit"],
+            ["Statement Collection", "Minimal Collection", "Temple Collection", "Classic Gold"],
+            ["Contemporary Diamond", "Limited Edition", "Seasonal Drops", "Best Sellers"],
+          ],
+          promo: {
+            title: "Curated stories in gold",
+            subtitle: "Exclusive edits inspired by moments and moods.",
+            cta: "View all",
+          },
+          ribbon: "Curated collections for every story",
+        },
+        Wedding: {
+          filters: ["Category", "Bridal Sets", "Price", "Occasion", "Metal"],
+          groups: [
+            ["All Wedding", "Bridal Necklaces", "Wedding Rings", "Wedding Earrings"],
+            ["Mangalsutra", "Bridal Bangles", "Temple Jewellery", "Heirloom Edit"],
+            ["For Bride", "For Groom", "Family Gifting", "Ceremony Essentials"],
+          ],
+          promo: {
+            title: "Made for your big day",
+            subtitle: "Celebrate your journey with timeless wedding jewellery.",
+            cta: "Explore now",
+          },
+          ribbon: "Bridal jewellery crafted with love",
+        },
+        Gifting: {
+          filters: ["Category", "Price", "Recipient", "Occasion", "Metal"],
+          groups: [
+            ["All Gifting", "For Her", "For Him", "For Kids"],
+            ["Birthday Gifts", "Anniversary Gifts", "Wedding Gifts", "Festive Gifts"],
+            ["Under 10k", "Under 25k", "Premium Gifts", "Gift Cards"],
+          ],
+          promo: {
+            title: "Gift unforgettable sparkle",
+            subtitle: "Thoughtful jewellery picks for every celebration.",
+            cta: "Explore now",
+          },
+          ribbon: "Gift moments that last forever",
+        },
+        More: {
+          filters: ["Highlights", "Shop by", "Help", "Services", "About"],
+          groups: [
+            ["New Arrivals", "Bestsellers", "Store Locator", "Book Appointment"],
+            ["Try at Home", "Exchange Policy", "Track Order", "Customer Support"],
+            ["About Us", "Care Guide", "FAQs", "Blogs"],
+          ],
+          promo: {
+            title: "Discover more with us",
+            subtitle: "Services and stories beyond shopping.",
+            cta: "Know more",
+          },
+          ribbon: "Everything else you need",
+        },
+      }) as Record<
+        string,
+        {
+          filters: string[];
+          groups: string[][];
+          promo: { title: string; subtitle: string; cta: string };
+          ribbon: string;
+        }
+      >,
+    [],
+  );
+
+  const openMegaMenu = (label: string) => {
+    if (closeMenuTimer.current) clearTimeout(closeMenuTimer.current);
+    setActiveMegaMenu(label);
+  };
+
+  const closeMegaMenu = () => {
+    closeMenuTimer.current = setTimeout(() => {
+      setActiveMegaMenu(null);
+    }, 120);
+  };
+
+  const openAccountMenu = () => {
+    if (closeAccountTimer.current) clearTimeout(closeAccountTimer.current);
+    setAccountOpen(true);
+  };
+
+  const closeAccountMenu = () => {
+    closeAccountTimer.current = setTimeout(() => {
+      setAccountOpen(false);
+    }, 120);
+  };
+
   const onSubmitSearch = (e: FormEvent) => {
     e.preventDefault();
-    // Keep it functional without assuming a search route exists.
-    // If you later add a search page, replace this with `router.push(...)`.
+  };
+
+  const categoryHrefByLabel = useMemo(
+    () => Object.fromEntries(categories.map((item) => [item.label, item.href])) as Record<string, string>,
+    [categories],
+  );
+
+  const getEntryHref = (categoryLabel: string, entry: string) => {
+    const base = categoryHrefByLabel[categoryLabel] ?? "/shop/jewellery";
+    return `${base}?sub=${encodeURIComponent(entry.toLowerCase())}`;
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-black/5 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:border-white/10 dark:bg-neutral-950/70">
+    <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
       {/* Top row */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center gap-3">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src={logoUrl}
-              alt="Logo"
-              width={44}
-              height={44}
-              priority
-              className="h-11 w-11 rounded-full border border-black/10 bg-white object-cover dark:border-white/10"
-            />
-            <span className="hidden text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:inline">
-              Tanishq
-            </span>
+      <div className="mx-auto w-full px-4 sm:px-6 lg:px-8 max-w-[1400px]">
+        <div className="flex h-[72px] items-center justify-between gap-6">
+          <Link href="/" className="flex shrink-0 items-center">
+            {logoUrl ? (
+              <div className="relative h-10 w-36 overflow-hidden">
+                <Image src={logoUrl} alt="Tanishq" fill className="object-contain object-left" />
+              </div>
+            ) : (
+              <div className="relative h-12 w-32 flex items-center justify-center">
+                <span className="text-[#832729] font-serif text-2xl tracking-wider font-bold">
+                  TANISHQ
+                </span>
+              </div>
+            )}
           </Link>
 
           <form
             onSubmit={onSubmitSearch}
-            className="mx-auto hidden w-full max-w-2xl md:block"
+            className="hidden flex-1 max-w-[600px] md:block"
           >
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-              <Input
+            <div className="relative flex items-center w-full h-11 rounded-full border border-gray-300 bg-white px-4 hover:border-gray-400 transition-colors focus-within:border-[#832729] focus-within:ring-1 focus-within:ring-[#832729]">
+              <Search className="size-4 text-gray-400 mr-2" />
+              <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search for engagement rings"
-                className="h-10 rounded-full bg-white/70 pl-9 pr-3 text-sm shadow-sm ring-1 ring-black/5 focus-visible:ring-black/10 dark:bg-neutral-950/40 dark:ring-white/10 dark:focus-visible:ring-white/20"
+                placeholder="Search for diamond jewellery"
+                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
               />
+              <div className="flex items-center gap-3 text-gray-400">
+                <Camera className="size-4 cursor-pointer hover:text-[#832729]" />
+                <Mic className="size-4 cursor-pointer hover:text-[#832729]" />
+              </div>
             </div>
           </form>
 
-          <div className="ml-auto flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden rounded-full md:inline-flex"
-              aria-label="Stores"
+          <div className="flex items-center gap-5 text-[#832729]">
+            <button className="hidden md:flex flex-col items-center gap-1 hover:opacity-80 transition">
+              <Diamond className="size-5 stroke-[1.5]" />
+            </button>
+            <button className="hidden md:flex flex-col items-center gap-1 hover:opacity-80 transition">
+              <Store className="size-5 stroke-[1.5]" />
+            </button>
+            <button className="hidden md:flex flex-col items-center gap-1 hover:opacity-80 transition">
+              <Heart className="size-5 stroke-[1.5]" />
+            </button>
+            <div
+              className="relative hidden md:block"
+              onMouseEnter={openAccountMenu}
+              onMouseLeave={closeAccountMenu}
             >
-              <Store className="size-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden rounded-full md:inline-flex"
-              aria-label="Wishlist"
-            >
-              <Heart className="size-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleAccountClick}
-              className="hidden rounded-full md:inline-flex"
-              aria-label="Account"
-            >
-              <User className="size-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden rounded-full md:inline-flex"
-              aria-label="Bag"
-            >
-              <ShoppingBag className="size-5" />
-            </Button>
+              <button className="flex flex-col items-center gap-1 transition hover:opacity-80">
+                <User className="size-5 stroke-[1.5]" />
+              </button>
+              {accountOpen ? (
+                <div className="absolute right-0 top-8 z-60 w-[250px] rounded-2xl border border-[#eadedf] bg-white p-2.5 text-[#2d1e1f] shadow-[0_25px_45px_-30px_rgba(17,24,39,0.65)]">
+                  <div className="rounded-xl bg-linear-to-r from-[#9d2731] via-[#c34a5a] to-[#e9959f] p-3 text-white">
+                    <p className="text-sm font-semibold leading-none">Devraj</p>
+                    <Link
+                      href="/account"
+                      className="mt-1.5 inline-block text-[11px] font-medium text-white/90 hover:text-white"
+                    >
+                      View My Account
+                    </Link>
+                  </div>
+                  <div className="mt-2 space-y-0.5">
+                    <Link
+                      href="/account"
+                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
+                    >
+                      <Clock3 className="size-4" />
+                      Order History
+                    </Link>
+                    <Link
+                      href="/account"
+                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
+                    >
+                      <WalletCards className="size-4" />
+                      Gift Card Balance
+                    </Link>
+                    <Link
+                      href="/account"
+                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
+                    >
+                      <Store className="size-4" />
+                      Track Order
+                    </Link>
+                    <Link
+                      href="/contact"
+                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
+                    >
+                      <MessageSquare className="size-4" />
+                      Contact Us
+                    </Link>
+                    <Link
+                      href="/account/login"
+                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
+                    >
+                      <LogOut className="size-4" />
+                      Log Out
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <button onClick={openCart} className="flex relative items-center justify-center hover:opacity-80 transition mt-[-4px]">
+              <ShoppingBag className="size-5 stroke-[1.5]" />
+              {mounted && getUniqueItemsCount() > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[#832729] text-[10px] font-bold text-white">
+                  {getUniqueItemsCount()}
+                </span>
+              )}
+            </button>
 
             {/* Mobile menu */}
-            <div className="md:hidden">
+            <div className="md:hidden flex items-center ml-2">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <Menu className="size-5" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
+                  <button className="p-1">
+                    <Menu className="size-6 stroke-[1.5]" />
+                  </button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[85vw] sm:w-96">
-                  <div className="flex items-center gap-3 py-2">
-                    <Image
-                      src={logoUrl}
-                      alt="Logo"
-                      width={40}
-                      height={40}
-                      className="h-10 w-10 rounded-full border border-black/10 object-cover dark:border-white/10"
-                    />
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold">
-                        Tanishq
+                <SheetContent side="right" className="w-[85vw] sm:w-96 bg-white">
+                  <div className="flex flex-col gap-4 mt-6">
+                    <form onSubmit={onSubmitSearch}>
+                      <div className="relative flex items-center h-10 rounded-full border border-gray-300 px-3">
+                        <Search className="size-4 text-gray-400 mr-2" />
+                        <input
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                          placeholder="Search..."
+                          className="flex-1 bg-transparent text-sm focus:outline-none"
+                        />
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleAccountClick}
-                        className="text-xs text-slate-600 hover:underline dark:text-slate-300"
-                      >
-                        Customer account
-                      </button>
-                    </div>
-                  </div>
-                  <Separator className="my-3" />
-                  <form onSubmit={onSubmitSearch}>
-                    <div className="relative">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-                      <Input
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search…"
-                        className="h-10 pl-9"
-                      />
-                    </div>
-                  </form>
-                  <Separator className="my-3" />
-                  <nav className="grid gap-1">
-                    {categories.map((item) => (
+                    </form>
+                    <nav className="flex flex-col gap-1">
                       <Link
-                        key={item.label}
-                        href={item.href}
-                        className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted"
+                        href="/account/login"
+                        className="mb-1 flex items-center gap-3 rounded-lg border border-[#eadedf] bg-[#faf5f6] px-3 py-3 text-sm font-medium text-[#832729]"
                       >
-                        <item.icon className="size-4 text-slate-600 dark:text-slate-300" />
-                        <span className="truncate">{item.label}</span>
+                        <User className="size-5 opacity-80" />
+                        <span>My Account</span>
                       </Link>
-                    ))}
-                  </nav>
+                      {categories.map((item) => (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#832729]"
+                        >
+                          <item.icon className="size-5 opacity-70" />
+                          <span>{item.label}</span>
+                        </Link>
+                      ))}
+                    </nav>
+                  </div>
                 </SheetContent>
               </Sheet>
             </div>
@@ -200,23 +441,117 @@ const Navbar = () => {
       </div>
 
       {/* Category row */}
-      <div className="border-t border-black/5 dark:border-white/10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-12 items-center gap-3 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="relative hidden md:block border-t border-gray-100 bg-white">
+        <div
+          className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8"
+          onMouseLeave={closeMegaMenu}
+        >
+          <div className="flex h-12 items-center justify-center gap-8 lg:gap-10 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categories.map((item) => (
-              <Link
+              <button
                 key={item.label}
-                href={item.href}
-                className={cn(
-                  "group inline-flex items-center gap-2 rounded-full px-2 py-1.5 text-sm text-slate-700 transition hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
-                )}
+                type="button"
+                className={`group flex items-center gap-2 border-b-2 px-1 pt-0.5 text-sm font-medium transition-colors ${
+                  activeMegaMenu === item.label
+                    ? "border-[#832729] text-[#832729]"
+                    : "border-transparent text-gray-700 hover:text-[#832729]"
+                }`}
+                onMouseEnter={() => {
+                  if (allowHoverMega) openMegaMenu(item.label);
+                }}
+                onClick={() => {
+                  if (allowHoverMega) {
+                    openMegaMenu(item.label);
+                    return;
+                  }
+                  setActiveMegaMenu((prev) => (prev === item.label ? null : item.label));
+                }}
               >
-                <item.icon className="size-4 opacity-80 transition group-hover:opacity-100" />
-                <span>{item.label}</span>
-              </Link>
+                <item.icon className="size-[18px] opacity-70 group-hover:opacity-100 stroke-[1.5]" />
+                <span className="tracking-wide uppercase text-[11px] font-semibold">{item.label}</span>
+              </button>
             ))}
           </div>
         </div>
+
+        {activeMegaMenu ? (
+          <div
+            className="absolute left-0 right-0 z-60 border-y border-gray-200 bg-white/95 shadow-[0_22px_38px_-26px_rgba(17,24,39,0.55)] backdrop-blur"
+            onMouseEnter={() => openMegaMenu(activeMegaMenu)}
+            onMouseLeave={closeMegaMenu}
+          >
+            <div className="mx-auto grid max-w-[1400px] grid-cols-[190px_1fr_250px] gap-6 px-4 py-5 sm:px-6 lg:px-8">
+              <aside className="rounded-xl border border-[#eadedf] bg-[#faf5f6] p-3">
+                <ul className="space-y-1.5">
+                  {megaMenuData[activeMegaMenu]?.filters.map((filter, idx) => (
+                    <li
+                      key={filter}
+                      className={`rounded-lg px-3 py-2 text-sm ${
+                        idx === 0
+                          ? "bg-white font-semibold text-[#3c2224] shadow-sm"
+                          : "text-[#4f4142] hover:bg-white"
+                      }`}
+                    >
+                      {filter}
+                    </li>
+                  ))}
+                </ul>
+              </aside>
+
+              <section className="grid grid-cols-3 divide-x divide-gray-100 rounded-xl border border-gray-100 bg-white">
+                {megaMenuData[activeMegaMenu]?.groups.map((group, index) => (
+                  <div key={`${activeMegaMenu}-group-${index}`} className="space-y-1 px-5 py-4">
+                    {group.map((entry) => (
+                      <Link
+                        key={entry}
+                        href={getEntryHref(activeMegaMenu, entry)}
+                        className="block rounded-md px-2 py-1.5 text-sm text-[#3b2a2b] hover:bg-[#fbf6f1] hover:text-[#832729]"
+                      >
+                        {entry}
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+              </section>
+
+              <aside className="space-y-3">
+                <div className="relative overflow-hidden rounded-xl border border-[#ede4d7] bg-linear-to-br from-[#f7efe3] via-[#f3e0c6] to-[#d2b38e] p-4 text-[#2e1e1f]">
+                  <div className="mb-10 max-w-[180px]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#6d4e33]">
+                      Featured
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold leading-tight">
+                      {megaMenuData[activeMegaMenu]?.promo.title}
+                    </h3>
+                    <p className="mt-1 text-xs text-[#5a4a3e]">
+                      {megaMenuData[activeMegaMenu]?.promo.subtitle}
+                    </p>
+                  </div>
+                  <Link
+                    href={categoryHrefByLabel[activeMegaMenu] ?? "/shop/jewellery"}
+                    className="inline-flex items-center text-sm font-semibold text-[#832729] underline underline-offset-4"
+                  >
+                    {megaMenuData[activeMegaMenu]?.promo.cta}
+                  </Link>
+                </div>
+              </aside>
+            </div>
+
+            <div className="border-t border-gray-200 bg-[#fbf7f2]">
+              <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+                <p className="text-sm font-medium text-[#3b2a2b]">
+                  {megaMenuData[activeMegaMenu]?.ribbon}
+                </p>
+                <Link
+                  href={categoryHrefByLabel[activeMegaMenu] ?? "/shop/jewellery"}
+                  className="inline-flex rounded-full bg-[#832729] px-6 py-2 text-sm font-semibold text-white hover:bg-[#6f2021]"
+                >
+                  View All
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </header>
   );

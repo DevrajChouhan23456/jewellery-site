@@ -4,7 +4,6 @@ import type {
   Prisma,
   ShopPageFeature,
   ShopPageProduct,
-  Slider,
 } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
@@ -34,6 +33,7 @@ export type HomepageSectionContent = {
   description: string;
   ctaLabel: string;
   ctaHref: string;
+  backgroundImageUrl?: string | null;
 };
 
 export type HeroSlideContent = {
@@ -54,6 +54,21 @@ export type ShopPageRecord = Prisma.ShopPageGetPayload<{
   };
 }>;
 export type ShopPageContent = ShopPageRecord | null;
+
+const heroSlideSelect = {
+  id: true,
+  imageUrl: true,
+  badge: true,
+  title: true,
+  subtitle: true,
+  ctaLabel: true,
+  ctaHref: true,
+  order: true,
+} satisfies Prisma.SliderSelect;
+
+type HeroSlideRecord = Prisma.SliderGetPayload<{
+  select: typeof heroSlideSelect;
+}>;
 
 const defaultHomepageSections: Record<
   HomepageSectionKey,
@@ -105,6 +120,7 @@ function normalizeHomepageSection(
     description: string | null;
     ctaLabel: string | null;
     ctaHref: string | null;
+    backgroundImageUrl: string | null;
   },
 ) {
   const fallback = defaultHomepageSections[key];
@@ -118,20 +134,12 @@ function normalizeHomepageSection(
     description: section?.description ?? fallback.description,
     ctaLabel: section?.ctaLabel ?? fallback.ctaLabel,
     ctaHref: section?.ctaHref ?? fallback.ctaHref,
+    backgroundImageUrl: section?.backgroundImageUrl ?? undefined,
   } satisfies HomepageSectionContent;
 }
 
 function normalizeHeroSlide(
-  slide: {
-    id: string;
-    imageUrl: string;
-    badge: string | null;
-    title: string | null;
-    subtitle: string | null;
-    ctaLabel: string | null;
-    ctaHref: string | null;
-    order: number;
-  },
+  slide: HeroSlideRecord,
 ) {
   return {
     id: slide.id,
@@ -170,7 +178,7 @@ export async function getHomepageContent() {
     HomepageCard[],
     HomepageCard[],
     HomepageCard[],
-    Slider[],
+    HeroSlideRecord[],
     HomepageSectionModel[],
   ] =
     await Promise.all([
@@ -180,6 +188,7 @@ export async function getHomepageContent() {
       getHomepageCards("gender"),
       prisma.slider.findMany({
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        select: heroSlideSelect,
       }),
       prisma.homepageSection.findMany(),
     ]);
@@ -212,7 +221,7 @@ export async function getHomepageContent() {
 
 export async function getStorefrontAdminData() {
   const [heroSlides, homepageSections, curatedItems, shopPages]: [
-    Slider[],
+    HeroSlideRecord[],
     HomepageSectionModel[],
     CuratedItem[],
     ShopPageRecord[],
@@ -220,6 +229,7 @@ export async function getStorefrontAdminData() {
     await Promise.all([
       prisma.slider.findMany({
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        select: heroSlideSelect,
       }),
       prisma.homepageSection.findMany({
         orderBy: { key: "asc" },

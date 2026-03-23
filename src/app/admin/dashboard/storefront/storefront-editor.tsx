@@ -27,6 +27,7 @@ type HomepageSection = {
   description: string;
   ctaLabel: string;
   ctaHref: string;
+  backgroundImageUrl?: string;
 };
 
 type HomepageCard = {
@@ -401,10 +402,28 @@ export function StorefrontEditor({ initialData }: StorefrontEditorProps) {
             shopPages,
           }),
         });
-        const data = (await response.json()) as StorefrontData & { error?: string };
+        const raw = await response.text();
+        let data: (StorefrontData & { error?: string }) | null = null;
+
+        if (raw) {
+          try {
+            data = JSON.parse(raw) as StorefrontData & { error?: string };
+          } catch {
+            throw new Error(
+              "The server returned an invalid response while saving storefront content.",
+            );
+          }
+        }
 
         if (!response.ok) {
-          throw new Error(data.error || "Failed to save storefront content.");
+          throw new Error(
+            data?.error ||
+              `Failed to save storefront content (HTTP ${response.status}).`,
+          );
+        }
+
+        if (!data) {
+          throw new Error("The server returned no storefront data.");
         }
 
         setHeroSlides(data.heroSlides);
@@ -655,6 +674,15 @@ export function StorefrontEditor({ initialData }: StorefrontEditorProps) {
                       multiline
                       onChange={(value) =>
                         updateHomepageSection(key, "description", value)
+                      }
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <ImageField
+                      label="Background Image (Optional)"
+                      value={section.backgroundImageUrl ?? ""}
+                      onChange={(value) =>
+                        updateHomepageSection(key, "backgroundImageUrl", value)
                       }
                     />
                   </div>

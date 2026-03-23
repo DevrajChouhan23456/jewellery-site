@@ -1,20 +1,23 @@
 import { PrismaClient } from "@prisma/client";
-import { withAccelerate } from "@prisma/extension-accelerate";
 
 const globalForPrisma = global as unknown as {
   prisma?: PrismaClient;
 };
 
 function createPrismaClient() {
-  const accelerateUrl = process.env.DATABASE_URL;
+  const mongoUrl = process.env.MONGO_URI;
 
-  if (!accelerateUrl) {
-    throw new Error("DATABASE_URL is not configured.");
+  if (!mongoUrl) {
+    throw new Error("MONGO_URI is not configured.");
   }
 
   return new PrismaClient({
-    accelerateUrl,
-  }).$extends(withAccelerate());
+    datasources: {
+      db: {
+        url: mongoUrl,
+      },
+    },
+  });
 }
 
 const prisma = globalForPrisma.prisma ?? createPrismaClient();

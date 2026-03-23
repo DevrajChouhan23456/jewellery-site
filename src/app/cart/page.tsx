@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React from "react";
 import toast from "react-hot-toast";
 import {
@@ -88,6 +89,7 @@ function writeCartToStorage(items: CartItem[]) {
 }
 
 export default function CartPage() {
+  const router = useRouter();
   const [items, setItems] = React.useState<CartItem[]>([]);
   const [coupon, setCoupon] = React.useState("");
   const [couponOpen, setCouponOpen] = React.useState(false);
@@ -139,7 +141,7 @@ export default function CartPage() {
 
   const onCheckout = () => {
     if (items.length === 0) return;
-    toast.success("Checkout flow not implemented yet.");
+    router.push("/checkout");
   };
 
   return (
@@ -206,7 +208,7 @@ export default function CartPage() {
                     </button>
 
                     <div className="grid gap-4 p-4 sm:grid-cols-[140px_1fr] sm:items-start sm:p-5">
-                      <div className="relative overflow-hidden rounded-xl border border-black/5 bg-gradient-to-br from-amber-50 to-white dark:border-white/10 dark:from-neutral-900 dark:to-neutral-950">
+                      <div className="relative overflow-hidden rounded-xl border border-black/5 bg-linear-to-br from-amber-50 to-white dark:border-white/10 dark:from-neutral-900 dark:to-neutral-950">
                         {item.imageUrl ? (
                           <Image
                             src={item.imageUrl}

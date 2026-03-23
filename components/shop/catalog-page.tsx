@@ -1,4 +1,4 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -12,6 +12,7 @@ import type { ShopPageRecord } from "@/lib/storefront";
 
 type CatalogPageProps = {
   page: ShopPageRecord;
+  selectedSubcategory?: string;
 };
 
 function formatINR(value: number) {
@@ -40,7 +41,39 @@ const servicePillars = [
   },
 ];
 
-export function CatalogPage({ page }: CatalogPageProps) {
+function normalizeSubLabel(value: string) {
+  return value
+    .replaceAll("-", " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
+  const subLabel = selectedSubcategory
+    ? normalizeSubLabel(selectedSubcategory)
+    : null;
+  const subQuery = selectedSubcategory?.toLowerCase() ?? "";
+  const filteredFeatures = subQuery
+    ? page.features.filter((feature) =>
+        feature.title.toLowerCase().includes(subQuery),
+      )
+    : page.features;
+  const filteredProducts = subQuery
+    ? page.products.filter((product) =>
+        product.name.toLowerCase().includes(subQuery),
+      )
+    : page.products;
+  const displayedFeatures =
+    filteredFeatures.length > 0 ? filteredFeatures : page.features;
+  const displayedProducts =
+    filteredProducts.length > 0 ? filteredProducts : page.products;
+  const noStrongMatch =
+    Boolean(subQuery) &&
+    filteredFeatures.length === 0 &&
+    filteredProducts.length === 0;
+
   return (
     <main
       className="pb-24"
@@ -100,6 +133,11 @@ export function CatalogPage({ page }: CatalogPageProps) {
                     >
                       {page.heroTitle}
                     </h1>
+                    {subLabel ? (
+                      <div className="mt-4 inline-flex rounded-full border border-white/25 bg-white/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/95">
+                        Subcategory: {subLabel}
+                      </div>
+                    ) : null}
                     <p className="mt-5 max-w-xl text-base leading-8 text-white/85 sm:text-lg">
                       {page.heroDescription}
                     </p>
@@ -140,19 +178,19 @@ export function CatalogPage({ page }: CatalogPageProps) {
                   <div className="luxury-panel p-5">
                     <p className="text-sm font-medium text-stone-500">Results</p>
                     <div className="mt-3 text-3xl font-semibold text-stone-950">
-                      {page.resultCount.toLocaleString("en-IN")}
+                      {displayedProducts.length.toLocaleString("en-IN")}
                     </div>
                   </div>
                   <div className="luxury-panel p-5">
                     <p className="text-sm font-medium text-stone-500">Highlights</p>
                     <div className="mt-3 text-3xl font-semibold text-stone-950">
-                      {page.features.length}
+                      {displayedFeatures.length}
                     </div>
                   </div>
                   <div className="luxury-panel p-5">
                     <p className="text-sm font-medium text-stone-500">Featured Picks</p>
                     <div className="mt-3 text-3xl font-semibold text-stone-950">
-                      {page.products.length}
+                      {displayedProducts.length}
                     </div>
                   </div>
                 </div>
@@ -197,7 +235,7 @@ export function CatalogPage({ page }: CatalogPageProps) {
           </div>
 
           <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {page.features.map((feature) => (
+            {displayedFeatures.map((feature) => (
               <Link
                 key={feature.id}
                 href={feature.href}
@@ -247,11 +285,18 @@ export function CatalogPage({ page }: CatalogPageProps) {
             </p>
           </div>
 
+          {noStrongMatch ? (
+            <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Showing closest matches for <span className="font-semibold">{subLabel}</span>.
+            </div>
+          ) : null}
+
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {page.products.map((product) => (
-              <article
+            {displayedProducts.map((product) => (
+              <Link
+                href={`/product/${product.id}`}
                 key={product.id}
-                className="group overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 luxury-shadow"
+                className="block group overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 luxury-shadow transition hover:shadow-xl hover:-translate-y-1"
               >
                 <div
                   className="relative aspect-[1.08] overflow-hidden"
@@ -283,37 +328,37 @@ export function CatalogPage({ page }: CatalogPageProps) {
                     }}
                   />
                   {product.badge ? (
-                    <div className="absolute left-4 top-4 rounded-full bg-stone-950 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
+                    <div className="absolute left-4 top-4 rounded-full bg-[#832729] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-md">
                       {product.badge}
                     </div>
                   ) : null}
                 </div>
-                <div className="p-6">
-                  <h3
-                    className="text-2xl leading-snug text-stone-950"
-                    style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
-                  >
-                    {product.name}
-                  </h3>
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <div className="text-xl font-semibold text-stone-950">
-                      {formatINR(product.price)}
+                <div className="p-6 flex flex-col h-[180px] justify-between">
+                  <div>
+                    <h3
+                      className="text-lg font-serif font-medium leading-snug text-gray-900 group-hover:text-[#832729] transition-colors line-clamp-2"
+                    >
+                      {product.name}
+                    </h3>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <div className="text-xl font-serif font-medium text-[#832729]">
+                        {formatINR(product.price)}
+                      </div>
+                      {product.lowStockText ? (
+                        <span className="rounded bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 border border-amber-200">
+                          {product.lowStockText}
+                        </span>
+                      ) : null}
                     </div>
-                    {product.lowStockText ? (
-                      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-900">
-                        {product.lowStockText}
-                      </span>
-                    ) : null}
                   </div>
-                  <Link
-                    href={page.heroCtaHref}
-                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-stone-900"
-                  >
-                    View this collection
-                    <ArrowRight className="size-4 transition group-hover:translate-x-1" />
-                  </Link>
+                  <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
+                    <span className="text-xs font-bold uppercase tracking-widest text-[#832729]">
+                      View Details
+                    </span>
+                    <ArrowRight className="size-4 text-[#832729] transition-transform group-hover:translate-x-1" />
+                  </div>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         </div>

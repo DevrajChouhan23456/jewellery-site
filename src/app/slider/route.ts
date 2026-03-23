@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import { uploadImage } from "@/lib/cloudinary";
 import prisma from "@/lib/prisma";
-import { v2 as cloudinary } from "cloudinary";
-// import prisma from "@/lib/primsa";
 
 export async function GET() {
   try {
     const sliders = await prisma.slider.findMany({
       orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        imageUrl: true,
+      },
     });
     return NextResponse.json(sliders);
   } catch (err) {
@@ -27,23 +30,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Upload to Cloudinary
-    const uploadRes = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream({ folder: "slider" }, (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
-        })
-        .end(buffer);
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const mimeType = file.type || "image/jpeg";
+    const imageUrl = await uploadImage(`data:${mimeType};base64,${base64}`, {
+      folder: "slider",
     });
 
-    // Save in DB
     const newImage = await prisma.slider.create({
-      data: { imageUrl: uploadRes.secure_url },
+      data: { imageUrl },
+      select: {
+        id: true,
+        imageUrl: true,
+      },
     });
 
     return NextResponse.json(newImage);

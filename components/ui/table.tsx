@@ -7,4 +7,4 @@ export {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/ui/table";
+} from "@/components/ui/magicui/table";

@@ -3,11 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
 }
 
 model AdminUser {
-  id           String   @id @default(cuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   username     String   @unique
   passwordHash String
   role         String   @default("ADMIN")
@@ -16,13 +16,13 @@ model AdminUser {
 }
 
 model Logo {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   imageUrl  String
   createdAt DateTime @default(now())
 }
 
 model CuratedItem {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   section   String   @default("gender")
   title     String
   subtitle  String?
@@ -35,20 +35,21 @@ model CuratedItem {
 }
 
 model HomepageSection {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  eyebrow     String?
-  title       String
-  subtitle    String?
-  description String?
-  ctaLabel    String?
-  ctaHref     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  key                 String   @unique
+  eyebrow             String?
+  title               String
+  subtitle            String?
+  description         String?
+  ctaLabel            String?
+  ctaHref             String?
+  backgroundImageUrl  String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model Slider {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   imageUrl    String
   badge       String?
   title       String?
@@ -61,7 +62,7 @@ model Slider {
 }
 
 model ShopPage {
-  id              String            @id @default(cuid())
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
   slug            String            @unique
   title           String
   subtitle        String
@@ -79,27 +80,140 @@ model ShopPage {
 }
 
 model ShopPageFeature {
-  id         String   @id @default(cuid())
-  shopPageId String
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  shopPageId String   @db.ObjectId
   title      String
   imageUrl   String
   href       String
   order      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  shopPage   ShopPage @relation(fields: [shopPageId], references: [id], onDelete: Cascade)
+  shopPage   ShopPage @relation(fields: [shopPageId], references: [id])
 }
 
 model ShopPageProduct {
-  id           String   @id @default(cuid())
-  shopPageId   String
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  shopPageId     String   @db.ObjectId
   name         String
   price        Int
   imageUrl     String?
+  images       String[]
+  description  String?
+  specifications Json?
   badge        String?
   lowStockText String?
   order        Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  shopPage     ShopPage @relation(fields: [shopPageId], references: [id], onDelete: Cascade)
+  shopPage     ShopPage @relation(fields: [shopPageId], references: [id])
+}
+
+model Customer {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  name      String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  carts  Cart[]
+  orders Order[]
+}
+
+model Cart {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  customerId String?     @db.ObjectId
+  sessionId  String?     @unique
+  status     CartStatus  @default(ACTIVE)
+  expiresAt  DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  items    CartItem[]
+
+  @@index([customerId])
+}
+
+model CartItem {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  cartId    String   @db.ObjectId
+  productId String   @db.ObjectId
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart            @relation(fields: [cartId], references: [id])
+  product ShopPageProduct @relation(fields: [productId], references: [id])
+
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber       String         @unique @default(cuid())
+  customerId        String?        @db.ObjectId
+  cartId            String?        @unique @db.ObjectId
+  status            OrderStatus    @default(PENDING)
+  paymentStatus     PaymentStatus  @default(PENDING)
+  currency          String         @default("INR")
+  subtotalAmount    Int            @default(0)
+  taxAmount         Int            @default(0)
+  shippingAmount    Int            @default(0)
+  discountAmount    Int            @default(0)
+  totalAmount       Int            @default(0)
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  shippingAddress   Json?
+  billingAddress    Json?
+  metadata          Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  cart     Cart?     @relation(fields: [cartId], references: [id])
+  items    OrderItem[]
+
+  @@index([customerId])
+  @@index([cartId])
+}
+
+model OrderItem {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId    String   @db.ObjectId
+  productId  String   @db.ObjectId
+  quantity   Int
+  unitPrice  Int
+  lineTotal  Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  order   Order            @relation(fields: [orderId], references: [id])
+  product ShopPageProduct  @relation(fields: [productId], references: [id])
+
+  @@unique([orderId, productId])
+}
+
+enum CartStatus {
+  ACTIVE
+  CHECKED_OUT
+  ABANDONED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PAID
+  FAILED
+  REFUNDED
 }
