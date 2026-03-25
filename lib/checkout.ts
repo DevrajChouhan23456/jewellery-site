@@ -141,7 +141,7 @@ export async function checkout(body: unknown) {
 
     return result;
   } catch (error) {
-    console.error("Checkout error", error);
-    return { error: "Could not place order", status: 500 };
+    console.error("Checkout transaction failed.");
+    return { error: "An unexpected error occurred during checkout.", status: 500 };
   }
 }

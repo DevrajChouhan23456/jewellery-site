@@ -1,14 +1,15 @@
-import "dotenv/config";
+import { PrismaClient } from "@prisma/client";
 
-import { defineConfig, env } from "prisma/config";
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
-export default defineConfig({
-  schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-    seed: "tsx prisma/seed.ts",
-  },
-  datasource: {
-    url: env("MONGO_URI"),
-  },
-});
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    datasourceUrl: process.env.DATABASE_URL, // ✅ REQUIRED
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}

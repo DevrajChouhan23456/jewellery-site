@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductById } from "@/lib/products";
 import Image from "next/image";
-import { ChevronRight, Heart, Share2, ShieldCheck, Truck } from "lucide-react";
+import { ChevronRight, ShieldCheck, Truck } from "lucide-react";
 import Link from "next/link";
 import AddToCartButton from "@/components/add-to-cart-button";
+import { ProductGallery } from "@/components/shop/product-gallery";
 
 export const dynamic = "force-dynamic";
 
@@ -67,39 +68,7 @@ export default async function ProductPage({ params }: ProductPageRouteProps) {
         <div className="lg:grid lg:grid-cols-[1.2fr_1fr] lg:gap-16">
           
           {/* Gallery Area */}
-          <div className="flex flex-col-reverse lg:flex-row gap-4 lg:gap-6">
-            {/* Thumbnails */}
-            <div className="flex lg:flex-col gap-4 overflow-x-auto lg:overflow-y-auto lg:h-[650px] scrollbar-hide py-1 pr-1 pb-4 lg:pb-1">
-              {galleryImages.map((img, idx) => (
-                <button 
-                  key={idx} 
-                  className={`relative size-[72px] lg:size-[90px] flex-shrink-0 rounded-2xl overflow-hidden border-2 transition ${idx === 0 ? 'border-[#832729]' : 'border-transparent hover:border-gray-300'}`}
-                >
-                  <Image src={img} alt={`${product.name} view ${idx}`} fill className="object-cover" />
-                </button>
-              ))}
-            </div>
-            
-            {/* Main Image */}
-            <div className="relative w-full aspect-[4/5] lg:h-[650px] rounded-3xl overflow-hidden bg-white shadow-sm border border-black/5 group">
-              <Image src={galleryImages[0]} alt={product.name} fill className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-[1.03]" />
-              
-              <div className="absolute top-5 right-5 flex flex-col gap-3">
-                <button className="p-3 rounded-full bg-white/60 hover:bg-white text-gray-600 hover:text-[#832729] backdrop-blur shadow-sm transition">
-                  <Heart className="size-5" />
-                </button>
-                <button className="p-3 rounded-full bg-white/60 hover:bg-white text-gray-600 hover:text-[#832729] backdrop-blur shadow-sm transition">
-                  <Share2 className="size-5" />
-                </button>
-              </div>
-
-              {product.badge && (
-                <div className="absolute top-5 left-5 bg-[#832729] text-white px-3 py-1 text-xs font-bold tracking-widest uppercase rounded">
-                  {product.badge}
-                </div>
-              )}
-            </div>
-          </div>
+          <ProductGallery images={galleryImages} productName={product.name} badge={product.badge} />
 
           {/* Details Area */}
           <div className="mt-10 lg:mt-0 px-2 sm:px-0">

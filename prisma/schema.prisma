@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 model AdminUser {
@@ -35,30 +36,30 @@ model CuratedItem {
 }
 
 model HomepageSection {
-  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
-  key                 String   @unique
-  eyebrow             String?
-  title               String
-  subtitle            String?
-  description         String?
-  ctaLabel            String?
-  ctaHref             String?
-  backgroundImageUrl  String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  key                String   @unique
+  eyebrow            String?
+  title              String
+  subtitle           String?
+  description        String?
+  ctaLabel           String?
+  ctaHref            String?
+  backgroundImageUrl String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model Slider {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  imageUrl    String
-  badge       String?
-  title       String?
-  subtitle    String?
-  ctaLabel    String?
-  ctaHref     String?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl  String
+  badge     String?
+  title     String?
+  subtitle  String?
+  ctaLabel  String?
+  ctaHref   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ShopPage {
@@ -73,8 +74,8 @@ model ShopPage {
   heroCtaLabel    String            @default("Shop Now")
   heroCtaHref     String            @default("/shop/jewellery")
   resultCount     Int               @default(0)
-  features        ShopPageFeature[]
-  products        ShopPageProduct[]
+  features        ShopPageFeature[] @relation("ShopPageToFeature")
+  products        ShopPageProduct[] @relation("ShopPageToProduct")
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 }
@@ -88,24 +89,26 @@ model ShopPageFeature {
   order      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  shopPage   ShopPage @relation(fields: [shopPageId], references: [id])
+  shopPage   ShopPage @relation("ShopPageToFeature", fields: [shopPageId], references: [id])
 }
 
 model ShopPageProduct {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  shopPageId     String   @db.ObjectId
-  name         String
-  price        Int
-  imageUrl     String?
-  images       String[]
-  description  String?
+  id             String      @id @default(auto()) @map("_id") @db.ObjectId
+  shopPageId     String      @db.ObjectId
+  name           String
+  price          Int
+  imageUrl       String?
+  images         String[]
+  description    String?
   specifications Json?
-  badge        String?
-  lowStockText String?
-  order        Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  shopPage     ShopPage @relation(fields: [shopPageId], references: [id])
+  badge          String?
+  lowStockText   String?
+  order          Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  shopPage       ShopPage    @relation("ShopPageToProduct", fields: [shopPageId], references: [id])
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
 }
 
 model Customer {
@@ -121,76 +124,78 @@ model Customer {
 }
 
 model Cart {
-  id         String      @id @default(auto()) @map("_id") @db.ObjectId
-  customerId String?     @db.ObjectId
-  sessionId  String?     @unique
-  status     CartStatus  @default(ACTIVE)
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  customerId String?    @db.ObjectId
+  sessionId  String?    @unique
+  status     CartStatus @default(ACTIVE)
   expiresAt  DateTime?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
-  customer Customer? @relation(fields: [customerId], references: [id])
+  customer Customer?  @relation(fields: [customerId], references: [id])
   items    CartItem[]
+  orders   Order[]
 
   @@index([customerId])
 }
 
 model CartItem {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    userId    String
   cartId    String   @db.ObjectId
   productId String   @db.ObjectId
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user    User    @relation(fields: [userId], references: [id])
 
   cart    Cart            @relation(fields: [cartId], references: [id])
   product ShopPageProduct @relation(fields: [productId], references: [id])
 
-  @@unique([cartId, productId])
+  @@unique([cartId, productId, userId])
 }
 
 model Order {
-  id                String         @id @default(auto()) @map("_id") @db.ObjectId
-  orderNumber       String         @unique @default(cuid())
-  customerId        String?        @db.ObjectId
-  cartId            String?        @unique @db.ObjectId
-  status            OrderStatus    @default(PENDING)
-  paymentStatus     PaymentStatus  @default(PENDING)
-  currency          String         @default("INR")
-  subtotalAmount    Int            @default(0)
-  taxAmount         Int            @default(0)
-  shippingAmount    Int            @default(0)
-  discountAmount    Int            @default(0)
-  totalAmount       Int            @default(0)
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber       String        @unique @default(cuid())
+  customerId        String?       @db.ObjectId
+  cartId            String?       @db.ObjectId
+  status            OrderStatus   @default(PENDING)
+  paymentStatus     PaymentStatus @default(PENDING)
+  currency          String        @default("INR")
+  subtotalAmount    Int           @default(0)
+  taxAmount         Int           @default(0)
+  shippingAmount    Int           @default(0)
+  discountAmount    Int           @default(0)
+  totalAmount       Int           @default(0)
   razorpayOrderId   String?
   razorpayPaymentId String?
   razorpaySignature String?
   shippingAddress   Json?
   billingAddress    Json?
   metadata          Json?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  customer Customer? @relation(fields: [customerId], references: [id])
-  cart     Cart?     @relation(fields: [cartId], references: [id])
+  customer Customer?   @relation(fields: [customerId], references: [id])
+  cart     Cart?       @relation(fields: [cartId], references: [id])
   items    OrderItem[]
 
   @@index([customerId])
-  @@index([cartId])
 }
 
 model OrderItem {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId    String   @db.ObjectId
-  productId  String   @db.ObjectId
-  quantity   Int
-  unitPrice  Int
-  lineTotal  Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String   @db.ObjectId
+  productId String   @db.ObjectId
+  quantity  Int
+  unitPrice Int
+  lineTotal Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  order   Order            @relation(fields: [orderId], references: [id])
-  product ShopPageProduct  @relation(fields: [productId], references: [id])
+  order   Order           @relation(fields: [orderId], references: [id])
+  product ShopPageProduct @relation(fields: [productId], references: [id])
 
   @@unique([orderId, productId])
 }
@@ -216,4 +221,41 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+}
+
+model Product {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String   @unique
+  category    String
+  subCategory String?   // 👈 ADD THIS
+  price       Int
+  images      String[]
+   material    String 
+  type        String  
+    cartItems CartItem[]
+    wishlist  Wishlist[]
+  createdAt   DateTime @default(now())
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  cartItems CartItem[]
+  wishlist  Wishlist[]
+}
+
+model Wishlist {
+  id        String @id @default(cuid())
+  userId    String
+  productId String
+
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
 }

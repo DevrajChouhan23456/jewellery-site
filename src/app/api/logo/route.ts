@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import cloudinary from "@/lib/cloudinary";
 
 const FALLBACK_LOGO_URL = "/images/logo.avif";
@@ -61,15 +61,15 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const primary = await prisma.logo.findUnique({ where: { id: SITE_LOGO_ID } });
-    const fallback =
-      primary ??
-      (await prisma.logo.findFirst({
-        orderBy: { createdAt: "desc" },
-      }));
-    const logoUrl = fallback?.imageUrl ?? FALLBACK_LOGO_URL;
+    const logo = await prisma.logo.findFirst({
+      orderBy: { createdAt: "desc" },
+    });
+    const logoUrl = logo?.imageUrl ?? FALLBACK_LOGO_URL;
 
-    return NextResponse.json({ logoUrl, logo: { url: logoUrl } }, { status: 200 });
+    return NextResponse.json(
+      { logoUrl, logo: { url: logoUrl } },
+      { status: 200 },
+    );
   } catch (error: unknown) {
     console.error("Logo fetch error:", error);
     return NextResponse.json(

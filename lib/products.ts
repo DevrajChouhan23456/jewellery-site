@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
 export type ProductWithCategory = Prisma.ShopPageProductGetPayload<{
@@ -21,7 +21,7 @@ export async function getProductById(id: string): Promise<ProductWithCategory | 
     });
     return product;
   } catch (error) {
-    console.error("Failed to fetch product:", error);
+    console.error(`Failed to fetch product with id ${id}`);
     return null;
   }
 }

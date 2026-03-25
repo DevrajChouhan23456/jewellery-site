@@ -1,5 +1,5 @@
 "use client";
-
+import { signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -26,8 +26,10 @@ import {
   WalletCards,
 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useCartStore } from "@/lib/store";
+import AccountDropdown from "./accountDropdown";
 
 const Navbar = () => {
   const [logoUrl, setLogoUrl] = useState<string>("/images/logo.avif");
@@ -39,6 +41,7 @@ const Navbar = () => {
   const closeAccountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const { openCart, getUniqueItemsCount } = useCartStore();
+  const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -324,65 +327,7 @@ const Navbar = () => {
             <button className="hidden md:flex flex-col items-center gap-1 hover:opacity-80 transition">
               <Heart className="size-5 stroke-[1.5]" />
             </button>
-            <div
-              className="relative hidden md:block"
-              onMouseEnter={openAccountMenu}
-              onMouseLeave={closeAccountMenu}
-            >
-              <button className="flex flex-col items-center gap-1 transition hover:opacity-80">
-                <User className="size-5 stroke-[1.5]" />
-              </button>
-              {accountOpen ? (
-                <div className="absolute right-0 top-8 z-60 w-[250px] rounded-2xl border border-[#eadedf] bg-white p-2.5 text-[#2d1e1f] shadow-[0_25px_45px_-30px_rgba(17,24,39,0.65)]">
-                  <div className="rounded-xl bg-linear-to-r from-[#9d2731] via-[#c34a5a] to-[#e9959f] p-3 text-white">
-                    <p className="text-sm font-semibold leading-none">Devraj</p>
-                    <Link
-                      href="/account"
-                      className="mt-1.5 inline-block text-[11px] font-medium text-white/90 hover:text-white"
-                    >
-                      View My Account
-                    </Link>
-                  </div>
-                  <div className="mt-2 space-y-0.5">
-                    <Link
-                      href="/account"
-                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
-                    >
-                      <Clock3 className="size-4" />
-                      Order History
-                    </Link>
-                    <Link
-                      href="/account"
-                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
-                    >
-                      <WalletCards className="size-4" />
-                      Gift Card Balance
-                    </Link>
-                    <Link
-                      href="/account"
-                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
-                    >
-                      <Store className="size-4" />
-                      Track Order
-                    </Link>
-                    <Link
-                      href="/contact"
-                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
-                    >
-                      <MessageSquare className="size-4" />
-                      Contact Us
-                    </Link>
-                    <Link
-                      href="/account/login"
-                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f9f3f3]"
-                    >
-                      <LogOut className="size-4" />
-                      Log Out
-                    </Link>
-                  </div>
-                </div>
-              ) : null}
-            </div>
+            <AccountDropdown/>
             <button onClick={openCart} className="flex relative items-center justify-center hover:opacity-80 transition mt-[-4px]">
               <ShoppingBag className="size-5 stroke-[1.5]" />
               {mounted && getUniqueItemsCount() > 0 && (

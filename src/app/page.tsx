@@ -21,6 +21,11 @@ import { getHomepageContent } from "@/lib/storefront";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Tanishq | Best Jewellery Online",
+  description: "Explore the latest collections of fine jewellery at Tanishq.",
+};
+
 const servicePillars = [
   {
     title: "Certified Craft",

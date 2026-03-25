@@ -6,7 +6,7 @@ import type {
   ShopPageProduct,
 } from "@prisma/client";
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export type HomepageSectionKey =
   | "category"
@@ -339,7 +339,7 @@ export async function getStorefrontAdminData() {
 }
 
 export async function getShopPageData(slug: string) {
-  return prisma.shopPage.findUnique({
+  const page = await prisma.shopPage.findUnique({
     where: { slug },
     include: {
       features: {
@@ -350,4 +350,92 @@ export async function getShopPageData(slug: string) {
       },
     },
   });
+
+  // ✅ IF CMS PAGE EXISTS → USE IT
+  if (page) return page;
+
+  // 🔥 FALLBACK → FETCH PRODUCTS
+  const products = await prisma.product.findMany({
+    where: { category: slug },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (products.length === 0) return null;
+
+  // ✅ RETURN "FAKE CMS PAGE"
+  return {
+    id: `fallback-${slug}`,
+    slug,
+    title: slug,
+    subtitle: "",
+    heroEyebrow: "",
+    heroTitle: `${slug} Jewellery`,
+    heroDescription: `Explore ${slug} jewellery collection`,
+    heroImageUrl: products[0]?.images?.[0] ?? "",
+    heroCtaLabel: "Shop Now",
+    heroCtaHref: `/shop/${slug}`,
+    resultCount: products.length,
+    features: [],
+    products: products.map((p, index) => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      imageUrl: p.images?.[0] ?? "",
+      badge: "",
+      lowStockText: "",
+      order: index,
+    })),
+  };
+}
+
+export async function getFilteredProducts({
+  slug,
+  page = 1,
+  sort,
+  minPrice,
+  maxPrice,
+  materials,
+  categories,
+}: any) {
+  const where: any = {
+    category: slug,
+  };
+
+  if (minPrice || maxPrice) {
+    where.price = {
+      gte: minPrice ? Number(minPrice) : undefined,
+      lte: maxPrice ? Number(maxPrice) : undefined,
+    };
+  }
+
+  if (materials?.length) {
+    where.material = { in: materials };
+  }
+
+  if (categories?.length) {
+    where.type = { in: categories };
+  }
+
+  const orderBy =
+    sort === "price_asc"
+      ? { price: "asc" }
+      : sort === "price_desc"
+      ? { price: "desc" }
+      : { createdAt: "desc" };
+
+  const take = 9;
+  const skip = (page - 1) * take;
+
+  // 🔥 KEY PART
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy,
+      take,
+      skip,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return { products, total };
 }

@@ -49,3 +49,4 @@ export default async function ShopPageRoute({
 
   return <CatalogPage page={page} selectedSubcategory={sub} />;
 }
+

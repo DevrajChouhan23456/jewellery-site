@@ -1,29 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = global as unknown as {
-  prisma?: PrismaClient;
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
 };
 
-function createPrismaClient() {
-  const mongoUrl = process.env.MONGO_URI;
-
-  if (!mongoUrl) {
-    throw new Error("MONGO_URI is not configured.");
-  }
-
-  return new PrismaClient({
-    datasources: {
-      db: {
-        url: mongoUrl,
-      },
-    },
-  });
-}
-
-const prisma = globalForPrisma.prisma ?? createPrismaClient();
+export const prisma =
+  globalForPrisma.prisma ?? new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma as PrismaClient;
+  globalForPrisma.prisma = prisma;
 }
-
-export default prisma;

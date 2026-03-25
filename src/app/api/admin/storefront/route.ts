@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { uploadImage } from "@/lib/cloudinary";
-import prisma from "@/lib/prisma";
+import {prisma} from "@/lib/prisma";
 import { getStorefrontAdminData } from "@/lib/storefront";
 
 const sectionKeys = ["category", "trending", "arrival", "gender"] as const;

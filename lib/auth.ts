@@ -8,7 +8,7 @@ import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 import { verifyPassword } from "@/lib/password";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 type AdminRole = "ADMIN";
 
