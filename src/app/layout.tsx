@@ -1,38 +1,37 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { CSSProperties } from "react";
 import "./globals.css";
 
-import { AuthProvider } from "./provider";
-import { Toaster } from "react-hot-toast";
+import Providers from "./provider";
 import SiteShell from "@/components/site-shell";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "Tanishq | Fine Jewellery",
-  description: "Shop from the finest collection of gold, diamond, and platinum jewellery for every occasion.",
+  description:
+    "Shop from the finest collection of gold, diamond, and platinum jewellery.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
+      <body
+        className="antialiased"
+        style={
+          {
+            "--font-geist-sans": "system-ui, sans-serif",
+            "--font-geist-mono": "ui-monospace, SFMono-Regular, monospace",
+          } as CSSProperties
+        }
+      >
+        <Providers>
           <SiteShell>{children}</SiteShell>
-          <Toaster position="bottom-right" />
-        </AuthProvider>
+          <Toaster position="top-center" />
+        </Providers>
       </body>
     </html>
   );

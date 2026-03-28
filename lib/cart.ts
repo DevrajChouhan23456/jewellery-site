@@ -1,37 +1,79 @@
-import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
-import { z } from "zod";
+import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
 
-import { auth } from "@/lib/auth";
+import { customerAuthOptions } from "@/lib/customer-auth";
 import prisma from "@/lib/prisma";
-import { fetchProductPrices } from "@/lib/prisma-helpers";
+import {
+  addToCartSchema,
+  MAX_CART_ITEM_QUANTITY,
+  objectIdSchema,
+  removeCartItemSchema,
+  updateCartQuantitySchema,
+} from "@/lib/validations/cart";
 
 const CART_COOKIE = "cart_session";
-const CART_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+const CART_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
-const objectIdSchema = z
-  .string()
-  .regex(/^[a-fA-F0-9]{24}$/, "Invalid id format (expected ObjectId)");
+type ResolvedCartProduct = {
+  id: string;
+  imageUrl: string | null;
+  kind: "product" | "shopPageProduct";
+  name: string;
+  price: number;
+};
 
-const quantitySchema = z.number().int().min(1).max(99);
+type CartItemRecord = {
+  productId: string;
+  quantity: number;
+  shopPageProductId: string | null;
+};
 
-const addItemSchema = z.object({
-  productId: objectIdSchema,
-  quantity: quantitySchema.optional().default(1),
-});
+type CartResponseItem = {
+  imageUrl: string | null;
+  name: string;
+  price: number;
+  productId: string;
+  quantity: number;
+};
 
-const updateQtySchema = z.object({
-  productId: objectIdSchema,
-  quantity: quantitySchema,
-});
+type CartResponse = {
+  cartId: string;
+  items: CartResponseItem[];
+  totals: {
+    subtotal: number;
+    total: number;
+  };
+};
 
-const removeItemSchema = z.object({
-  productId: objectIdSchema,
-});
+type CartOperationResult =
+  | {
+      data: CartResponse;
+      status: number;
+    }
+  | {
+      error: string;
+      fieldErrors?: Record<string, string[] | undefined>;
+      status: number;
+    };
+
+async function getCurrentUserId() {
+  const session = await getServerSession(customerAuthOptions);
+
+  if (
+    typeof session?.user?.id === "string" &&
+    objectIdSchema.safeParse(session.user.id).success
+  ) {
+    return session.user.id;
+  }
+
+  return null;
+}
 
 export async function getOrCreateCart() {
   const cookieStore = await cookies();
   let sessionId = cookieStore.get(CART_COOKIE)?.value;
+  const userId = await getCurrentUserId();
 
   if (!sessionId) {
     sessionId = randomUUID();
@@ -43,180 +85,375 @@ export async function getOrCreateCart() {
     });
   }
 
-  const session = await auth().catch(() => null);
-  const customerId =
-    typeof session?.user?.id === "string" &&
-    objectIdSchema.safeParse(session.user.id).success
-      ? session.user.id
-      : null;
-
   let cart = await prisma.cart.findFirst({
-    where: { sessionId },
+    where: {
+      status: "ACTIVE",
+      OR: [
+        { sessionId },
+        ...(userId ? [{ customerId: userId }] : []),
+      ],
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
   });
 
   if (!cart) {
     cart = await prisma.cart.create({
       data: {
         sessionId,
-        customerId: customerId ?? undefined,
+        customerId: userId ?? undefined,
         status: "ACTIVE",
       },
     });
-  } else if (customerId && !cart.customerId) {
-    // attach customer to existing cart
+  } else if (cart.sessionId !== sessionId || (userId && !cart.customerId)) {
     cart = await prisma.cart.update({
       where: { id: cart.id },
-      data: { customerId },
+      data: {
+        sessionId,
+        customerId: cart.customerId ?? userId ?? undefined,
+      },
     });
   }
 
   return cart;
 }
 
-function computeTotals(items: {
-  quantity: number;
-  product: { price: number };
-}[]) {
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.quantity * (item.product?.price ?? 0),
-    0,
-  );
-  return { subtotal, total: subtotal };
+async function resolveProduct(productId: string): Promise<ResolvedCartProduct | null> {
+  const [shopPageProduct, product] = await Promise.all([
+    prisma.shopPageProduct.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        imageUrl: true,
+        images: true,
+        name: true,
+        price: true,
+      },
+    }),
+    prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        images: true,
+        name: true,
+        price: true,
+      },
+    }),
+  ]);
+
+  if (shopPageProduct) {
+    return {
+      id: shopPageProduct.id,
+      imageUrl: shopPageProduct.imageUrl ?? shopPageProduct.images[0] ?? null,
+      kind: "shopPageProduct",
+      name: shopPageProduct.name,
+      price: shopPageProduct.price,
+    };
+  }
+
+  if (product) {
+    return {
+      id: product.id,
+      imageUrl: product.images[0] ?? null,
+      kind: "product",
+      name: product.name,
+      price: product.price,
+    };
+  }
+
+  return null;
 }
 
-const MAX_QTY = 99;
+async function buildCartResponse(
+  cartId: string,
+  items: CartItemRecord[],
+): Promise<CartResponse> {
+  const shopPageProductIds = Array.from(
+    new Set(
+      items
+        .flatMap((item) => [item.shopPageProductId, item.productId])
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
 
-export async function getCartResponse() {
-  const cart = await getOrCreateCart();
+  const productIds = Array.from(new Set(items.map((item) => item.productId)));
 
-  const fullCart = await prisma.cart.findUnique({
-    where: { id: cart.id },
-    include: {
-      items: {
-        include: {
-          product: { select: { id: true, name: true, price: true, imageUrl: true } },
-        },
+  const [shopPageProducts, products] = await Promise.all([
+    prisma.shopPageProduct.findMany({
+      where: { id: { in: shopPageProductIds } },
+      select: {
+        id: true,
+        imageUrl: true,
+        images: true,
+        name: true,
+        price: true,
       },
-    },
+    }),
+    prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: {
+        id: true,
+        images: true,
+        name: true,
+        price: true,
+      },
+    }),
+  ]);
+
+  const shopPageProductMap = new Map(
+    shopPageProducts.map((product) => [
+      product.id,
+      {
+        imageUrl: product.imageUrl ?? product.images[0] ?? null,
+        name: product.name,
+        price: product.price,
+      },
+    ]),
+  );
+
+  const productMap = new Map(
+    products.map((product) => [
+      product.id,
+      {
+        imageUrl: product.images[0] ?? null,
+        name: product.name,
+        price: product.price,
+      },
+    ]),
+  );
+
+  const responseItems = items.map((item) => {
+    const resolvedProduct =
+      (item.shopPageProductId
+        ? shopPageProductMap.get(item.shopPageProductId)
+        : undefined) ??
+      shopPageProductMap.get(item.productId) ??
+      productMap.get(item.productId);
+
+    return {
+      imageUrl: resolvedProduct?.imageUrl ?? null,
+      name: resolvedProduct?.name ?? "Unknown Product",
+      price: resolvedProduct?.price ?? 0,
+      productId: item.shopPageProductId ?? item.productId,
+      quantity: item.quantity,
+    } satisfies CartResponseItem;
   });
 
-  const items =
-    fullCart?.items.map((item) => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      name: item.product?.name ?? "Unknown",
-      price: item.product?.price ?? 0,
-      imageUrl: item.product?.imageUrl ?? null,
-    })) ?? [];
-
-  const totals = computeTotals(fullCart?.items ?? []);
+  const subtotal = responseItems.reduce(
+    (sum, item) => sum + item.quantity * item.price,
+    0,
+  );
 
   return {
-    cartId: cart.id,
-    items,
-    totals,
+    cartId,
+    items: responseItems,
+    totals: {
+      subtotal,
+      total: subtotal,
+    },
   };
 }
 
-export async function addItem(body: unknown) {
-  try {
-    const parsed = addItemSchema.safeParse(body);
-    if (!parsed.success) {
-      return { error: parsed.error.format(), status: 400 };
-    }
-    const { productId, quantity } = parsed.data;
+async function getCartItems(cartId: string, userId: string) {
+  return prisma.cartItem.findMany({
+    where: {
+      cartId,
+      userId,
+    },
+    select: {
+      productId: true,
+      quantity: true,
+      shopPageProductId: true,
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+}
 
-    const [price] = await fetchProductPrices([productId]);
-    if (price === null) return { error: "Product not found", status: 404 };
+export async function getCart(): Promise<CartOperationResult> {
+  try {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+      return { error: "Unauthorized", status: 401 };
+    }
 
     const cart = await getOrCreateCart();
+    const items = await getCartItems(cart.id, userId);
 
-    const existing = await prisma.cartItem.findUnique({
+    return {
+      data: await buildCartResponse(cart.id, items),
+      status: 200,
+    };
+  } catch (error) {
+    console.error("Failed to read cart:", error);
+    return { error: "Unable to load your cart right now.", status: 500 };
+  }
+}
+
+export async function addItem(body: unknown): Promise<CartOperationResult> {
+  try {
+    const parsed = addToCartSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return {
+        error: "Invalid add-to-cart payload.",
+        fieldErrors: parsed.error.flatten().fieldErrors,
+        status: 400,
+      };
+    }
+
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+      return { error: "Unauthorized", status: 401 };
+    }
+
+    const resolvedProduct = await resolveProduct(parsed.data.productId);
+
+    if (!resolvedProduct) {
+      return { error: "Product not found.", status: 404 };
+    }
+
+    const cart = await getOrCreateCart();
+    const existing = await prisma.cartItem.findFirst({
       where: {
-        cartId_productId: {
-          cartId: cart.id,
-          productId,
-        },
+        cartId: cart.id,
+        productId: resolvedProduct.id,
+        userId,
       },
-      select: { quantity: true, id: true },
+      select: {
+        id: true,
+        quantity: true,
+      },
     });
 
     if (existing) {
-      const nextQty = Math.min(MAX_QTY, existing.quantity + quantity);
       await prisma.cartItem.update({
         where: { id: existing.id },
-        data: { quantity: nextQty },
+        data: {
+          quantity: Math.min(
+            MAX_CART_ITEM_QUANTITY,
+            existing.quantity + parsed.data.quantity,
+          ),
+          ...(resolvedProduct.kind === "shopPageProduct"
+            ? { shopPageProductId: resolvedProduct.id }
+            : {}),
+        },
       });
     } else {
       await prisma.cartItem.create({
         data: {
           cartId: cart.id,
-          productId,
-          quantity,
+          productId: resolvedProduct.id,
+          quantity: parsed.data.quantity,
+          ...(resolvedProduct.kind === "shopPageProduct"
+            ? { shopPageProductId: resolvedProduct.id }
+            : {}),
+          userId,
         },
       });
     }
 
-    return { data: await getCartResponse(), status: 200 };
+    const items = await getCartItems(cart.id, userId);
+
+    return {
+      data: await buildCartResponse(cart.id, items),
+      status: existing ? 200 : 201,
+    };
   } catch (error) {
-    console.error("Cart API Error:", error);
-    return { error: "Internal Server Error", status: 500 };
+    console.error("Failed to add item to cart:", error);
+    return { error: "Unable to add this item to your cart right now.", status: 500 };
   }
 }
 
-export async function updateQuantity(body: unknown) {
+export async function updateQuantity(body: unknown): Promise<CartOperationResult> {
   try {
-    const parsed = updateQtySchema.safeParse(body);
+    const parsed = updateCartQuantitySchema.safeParse(body);
+
     if (!parsed.success) {
-      return { error: parsed.error.format(), status: 400 };
+      return {
+        error: "Invalid cart update payload.",
+        fieldErrors: parsed.error.flatten().fieldErrors,
+        status: 400,
+      };
     }
-    const { productId, quantity } = parsed.data;
+
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+      return { error: "Unauthorized", status: 401 };
+    }
 
     const cart = await getOrCreateCart();
-
     const updated = await prisma.cartItem.updateMany({
       where: {
         cartId: cart.id,
-        productId,
+        productId: parsed.data.productId,
+        userId,
       },
-      data: { quantity: Math.min(MAX_QTY, quantity) },
+      data: {
+        quantity: parsed.data.quantity,
+      },
     });
 
     if (updated.count === 0) {
-      return { error: "Item not in cart", status: 404 };
+      return { error: "Item not in cart.", status: 404 };
     }
 
-    return { data: await getCartResponse(), status: 200 };
+    const items = await getCartItems(cart.id, userId);
+
+    return {
+      data: await buildCartResponse(cart.id, items),
+      status: 200,
+    };
   } catch (error) {
-    console.error("Cart API Error:", error);
-    return { error: "Internal Server Error", status: 500 };
+    console.error("Failed to update cart quantity:", error);
+    return { error: "Unable to update that cart item right now.", status: 500 };
   }
 }
 
-export async function removeItem(body: unknown) {
+export async function removeItem(body: unknown): Promise<CartOperationResult> {
   try {
-    const parsed = removeItemSchema.safeParse(body);
+    const parsed = removeCartItemSchema.safeParse(body);
+
     if (!parsed.success) {
-      return { error: parsed.error.format(), status: 400 };
+      return {
+        error: "Invalid cart removal payload.",
+        fieldErrors: parsed.error.flatten().fieldErrors,
+        status: 400,
+      };
     }
-    const { productId } = parsed.data;
+
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+      return { error: "Unauthorized", status: 401 };
+    }
 
     const cart = await getOrCreateCart();
-
     const removed = await prisma.cartItem.deleteMany({
       where: {
         cartId: cart.id,
-        productId,
+        productId: parsed.data.productId,
+        userId,
       },
     });
 
     if (removed.count === 0) {
-      return { error: "Item not in cart", status: 404 };
+      return { error: "Item not in cart.", status: 404 };
     }
 
-    return { data: await getCartResponse(), status: 200 };
+    const items = await getCartItems(cart.id, userId);
+
+    return {
+      data: await buildCartResponse(cart.id, items),
+      status: 200,
+    };
   } catch (error) {
-    console.error("Cart API Error:", error);
-    return { error: "Internal Server Error", status: 500 };
+    console.error("Failed to remove cart item:", error);
+    return { error: "Unable to remove that item right now.", status: 500 };
   }
 }

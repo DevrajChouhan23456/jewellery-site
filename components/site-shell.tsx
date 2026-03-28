@@ -1,29 +1,26 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useState } from "react";
+import Navbar from "./navbar";
+import LoginModal from "./auth/loginModal";
+import CartDrawer from "./cart-drawer";
 
-import Footer from "@/components/footer";
-import Navbar from "@/components/navbar";
-import CartDrawer from "@/components/cart-drawer";
-
-export default function SiteShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const pathname = usePathname();
-  const isAdminRoute = pathname.startsWith("/admin");
-
-  if (isAdminRoute) {
-    return <div className="min-h-screen bg-[var(--luxury-ivory)]">{children}</div>;
-  }
+export default function SiteShell({ children }: any) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
+    <>
+      {/* ✅ PASS DOWN */}
+      <Navbar onLoginClick={() => setOpen(true)} />
+
+      {/* ✅ MODAL CONTROLLED HERE */}
+      <LoginModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+      />
       <CartDrawer />
-      <div className="flex-1">{children}</div>
-      <Footer />
-    </div>
+
+      <main>{children}</main>
+    </>
   );
 }

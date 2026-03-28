@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "../../../../lib/prisma";
 
-export async function DELETE(request: NextRequest, context: any) {
-  const { id } = context.params as { id: string };
+import prisma from "@/lib/prisma";
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
 
   try {
     await prisma.slider.delete({
-      where: { id: Number(id) },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
 }

@@ -1,15 +1,30 @@
-export function Pagination({ page, totalPages, onPageChange }) {
+type PaginationProps = {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+};
+
+export function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: PaginationProps) {
   return (
-    <div className="flex gap-2 mt-6">
-      {Array.from({ length: totalPages }).map((_, i) => (
-        <button
-          key={i}
-          onClick={() => onPageChange(i + 1)}
-          className="px-3 py-1 border rounded"
-        >
-          {i + 1}
-        </button>
-      ))}
+    <div className="mt-6 flex gap-2">
+      {Array.from({ length: totalPages }).map((_, index) => {
+        const nextPage = index + 1;
+
+        return (
+          <button
+            key={nextPage}
+            type="button"
+            onClick={() => onPageChange(nextPage)}
+            className={`rounded border px-3 py-1 ${page === nextPage ? "bg-black text-white" : ""}`}
+          >
+            {nextPage}
+          </button>
+        );
+      })}
     </div>
   );
 }

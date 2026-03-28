@@ -140,19 +140,22 @@ model Cart {
 }
 
 model CartItem {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-    userId    String
-  cartId    String   @db.ObjectId
-  productId String   @db.ObjectId
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId    String @db.ObjectId
+  productId String @db.ObjectId
+
+  quantity Int @default(1)
+
   user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
-  cart    Cart            @relation(fields: [cartId], references: [id])
-  product ShopPageProduct @relation(fields: [productId], references: [id])
-
-  @@unique([cartId, productId, userId])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  ShopPageProduct   ShopPageProduct? @relation(fields: [shopPageProductId], references: [id])
+  shopPageProductId String?          @db.ObjectId
+  Cart              Cart?            @relation(fields: [cartId], references: [id])
+  cartId            String?          @db.ObjectId
 }
 
 model Order {
@@ -224,38 +227,48 @@ enum PaymentStatus {
 }
 
 model Product {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
   name        String
-  slug        String   @unique
+  slug        String     @unique
   category    String
-  subCategory String?   // 👈 ADD THIS
+  subCategory String? // 👈 ADD THIS
   price       Int
   images      String[]
-   material    String 
-  type        String  
-    cartItems CartItem[]
-    wishlist  Wishlist[]
-  createdAt   DateTime @default(now())
+  material    String
+  type        String
+  cartItems   CartItem[]
+  wishlist    Wishlist[]
+  createdAt   DateTime   @default(now())
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
+  id    String  @id @default(auto()) @map("_id") @db.ObjectId
+  phone String  @unique
+  email String? @unique
+  name  String?
 
   cartItems CartItem[]
   wishlist  Wishlist[]
+
+  createdAt DateTime @default(now())
+}
+
+model OTP {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  otp        String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
 }
 
 model Wishlist {
-  id        String @id @default(cuid())
-  userId    String
-  productId String
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  userId    String @db.ObjectId
+  productId String @db.ObjectId
 
   user    User    @relation(fields: [userId], references: [id])
   product Product @relation(fields: [productId], references: [id])
 
-  @@unique([userId, productId])
+  createdAt DateTime @default(now())
 }

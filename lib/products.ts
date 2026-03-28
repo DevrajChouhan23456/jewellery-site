@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { objectIdSchema } from "@/lib/validations/cart";
 import type { Prisma } from "@prisma/client";
 
 export type ProductWithCategory = Prisma.ShopPageProductGetPayload<{
@@ -10,6 +11,10 @@ export type ProductWithCategory = Prisma.ShopPageProductGetPayload<{
 }>;
 
 export async function getProductById(id: string): Promise<ProductWithCategory | null> {
+  if (!objectIdSchema.safeParse(id).success) {
+    return null;
+  }
+
   try {
     const product = await prisma.shopPageProduct.findUnique({
       where: { id },
@@ -20,7 +25,7 @@ export async function getProductById(id: string): Promise<ProductWithCategory | 
       },
     });
     return product;
-  } catch (error) {
+  } catch {
     console.error(`Failed to fetch product with id ${id}`);
     return null;
   }

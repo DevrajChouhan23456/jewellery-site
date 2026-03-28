@@ -416,12 +416,12 @@ export async function getFilteredProducts({
     where.type = { in: categories };
   }
 
-  const orderBy =
+  const orderBy: Prisma.ProductOrderByWithRelationInput =
     sort === "price_asc"
       ? { price: "asc" }
       : sort === "price_desc"
-      ? { price: "desc" }
-      : { createdAt: "desc" };
+        ? { price: "desc" }
+        : { createdAt: "desc" };
 
   const take = 9;
   const skip = (page - 1) * take;

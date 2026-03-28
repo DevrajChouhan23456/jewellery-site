@@ -1,58 +1,86 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+"use client";
 
-export type CartItem = {
-  id: string
-  name: string
-  price: number
-  imageUrl: string
-  quantity: number
-}
+import { create } from "zustand";
+import {
+  type CartItem,
+  clearCartStorage,
+  writeCartToStorage,
+} from "@/lib/cart-storage";
 
-interface CartState {
-  items: CartItem[]
-  isOpen: boolean
-  addItem: (item: Omit<CartItem, 'quantity'>) => void
-  removeItem: (id: string) => void
-  updateQuantity: (id: string, quantity: number) => void
-  openCart: () => void
-  closeCart: () => void
-  clearCart: () => void
-  getUniqueItemsCount: () => number
-}
+type CartStore = {
+  items: CartItem[];
+  isOpen: boolean;
+  setItems: (items: CartItem[]) => void;
+  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void;
+  removeItem: (id: string) => void;
+  updateQuantity: (id: string, quantity: number) => void;
+  openCart: () => void;
+  closeCart: () => void;
+  clearCart: () => void;
+  getUniqueItemsCount: () => number;
+};
 
-export const useCartStore = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [],
-      isOpen: false,
-      addItem: (item) => set((state) => {
-        const existingItem = state.items.find((i) => i.id === item.id)
-        if (existingItem) {
-          return {
-            items: state.items.map((i) => 
-              i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-            ),
-            isOpen: true
-          }
-        }
-        return { items: [...state.items, { ...item, quantity: 1 }], isOpen: true }
-      }),
-      removeItem: (id) => set((state) => ({
-        items: state.items.filter((i) => i.id !== id)
-      })),
-      updateQuantity: (id, quantity) => set((state) => ({
-        items: state.items.map((i) => 
-          i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i
-        )
-      })),
-      openCart: () => set({ isOpen: true }),
-      closeCart: () => set({ isOpen: false }),
-      clearCart: () => set({ items: [] }),
-      getUniqueItemsCount: () => get().items.length,
-    }),
-    {
-      name: 'tanishq-cart-storage',
+export const useCartStore = create<CartStore>((set, get) => ({
+  items: [],
+  isOpen: false,
+
+  setItems: (items) => {
+    set({ items });
+    writeCartToStorage(items);
+  },
+
+  addItem: (item) => {
+    const items = [...get().items];
+    const existing = items.find((currentItem) => currentItem.id === item.id);
+
+    if (existing) {
+      existing.quantity = Math.min(99, existing.quantity + (item.quantity ?? 1));
+      existing.name = item.name || existing.name;
+      existing.price = item.price ?? existing.price;
+      existing.imageUrl = item.imageUrl ?? existing.imageUrl;
+      existing.meta = item.meta ?? existing.meta;
+    } else {
+      items.push({
+        ...item,
+        quantity: Math.max(1, Math.min(99, item.quantity ?? 1)),
+      });
     }
-  )
-)
+
+    set({ items });
+    writeCartToStorage(items);
+  },
+
+  removeItem: (id) => {
+    const items = get().items.filter((item) => item.id !== id);
+    set({ items });
+    writeCartToStorage(items);
+  },
+
+  updateQuantity: (id, quantity) => {
+    if (quantity <= 0) {
+      get().removeItem(id);
+      return;
+    }
+
+    const items = get().items.map((item) =>
+      item.id === id
+        ? { ...item, quantity: Math.max(1, Math.min(99, quantity)) }
+        : item,
+    );
+
+    set({ items });
+    writeCartToStorage(items);
+  },
+
+  openCart: () => set({ isOpen: true }),
+
+  closeCart: () => set({ isOpen: false }),
+
+  clearCart: () => {
+    set({ items: [] });
+    clearCartStorage();
+  },
+
+  getUniqueItemsCount: () =>
+    get().items.reduce((total, item) => total + item.quantity, 0),
+}));

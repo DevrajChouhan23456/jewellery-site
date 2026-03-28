@@ -6,7 +6,6 @@ import { withAccelerate } from "@prisma/extension-accelerate";
 import { hashPassword } from "../lib/password";
 
 const prisma = new PrismaClient({
-  accelerateUrl: process.env.DATABASE_URL,
 }).$extends(withAccelerate());
 
 const imageLibrary = {

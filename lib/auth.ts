@@ -10,8 +10,6 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 
-type AdminRole = "ADMIN";
-
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: {
@@ -22,13 +20,13 @@ export const authOptions: NextAuthOptions = {
   },
   providers: [
     CredentialsProvider({
-      name: "Admin Login",
+      name: "Admin Credentials",
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const username = credentials?.username?.trim() ?? "";
+        const username = credentials?.username?.trim();
         const password = credentials?.password ?? "";
 
         if (!username || !password) {
@@ -39,13 +37,7 @@ export const authOptions: NextAuthOptions = {
           where: { username },
         });
 
-        if (!admin) {
-          return null;
-        }
-
-        const isValid = verifyPassword(password, admin.passwordHash);
-
-        if (!isValid || admin.role !== "ADMIN") {
+        if (!admin || !verifyPassword(password, admin.passwordHash)) {
           return null;
         }
 
@@ -53,7 +45,7 @@ export const authOptions: NextAuthOptions = {
           id: admin.id,
           name: admin.username,
           username: admin.username,
-          role: "ADMIN" as AdminRole,
+          role: "ADMIN" as const,
         };
       },
     }),
@@ -61,6 +53,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.uid = user.id;
         token.role = user.role;
         token.username = user.username;
       }
@@ -69,10 +62,10 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub ?? "";
-        session.user.role = (token.role as AdminRole) ?? "ADMIN";
+        session.user.id = token.uid ?? token.sub ?? "";
+        session.user.role = token.role;
         session.user.username =
-          typeof token.username === "string" ? token.username : "";
+          typeof token.username === "string" ? token.username : undefined;
       }
 
       return session;
