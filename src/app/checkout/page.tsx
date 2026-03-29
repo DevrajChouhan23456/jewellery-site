@@ -3,32 +3,57 @@
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { useSession } from "next-auth/react";
+import { useSyncExternalStore } from "react";
 import toast from "react-hot-toast";
-import { BadgeCheck, CreditCard, Lock, MapPin, ShieldCheck, Truck } from "lucide-react";
+import {
+  BadgeCheck,
+  CreditCard,
+  Lock,
+  MapPin,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
+import type { ZodError } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { fetchServerCart, mapApiCartToStoreItems } from "@/lib/cart-client";
+import {
+  createCheckoutOrder,
+  createRazorpayOrder,
+  openRazorpayCheckout,
+  verifyRazorpayPayment,
+} from "@/lib/checkout-client";
+import { openCustomerLogin } from "@/lib/customer-login";
+import { mergeCartAfterLogin } from "@/lib/mergeCart";
+import { useCartStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { checkoutSchema, type CheckoutInput } from "@/features/checkout/validation";
 
-type CartItem = {
-  id: string;
-  name: string;
-  price: number;
-  qty: number;
-  imageUrl?: string;
+type CheckoutFormState = {
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  email: string;
+  fullName: string;
+  phone: string;
+  postalCode: string;
+  state: string;
 };
 
-const CART_STORAGE_KEY = "cart.items.v1";
+type CheckoutFormErrors = Partial<Record<keyof CheckoutFormState, string>>;
 
-const initialForm = {
-  fullName: "",
-  email: "",
-  phone: "",
+const initialForm: CheckoutFormState = {
   addressLine1: "",
   addressLine2: "",
   city: "",
-  state: "",
+  email: "",
+  fullName: "",
+  phone: "",
   postalCode: "",
+  state: "",
 };
 
 function formatINR(value: number) {
@@ -36,76 +61,328 @@ function formatINR(value: number) {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
-  })
-    .format(value)
-    .replace("₹", "₹ ");
+  }).format(value);
 }
 
-function readCartFromStorage(): CartItem[] {
-  try {
-    const raw = window.localStorage.getItem(CART_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((item) => item as Partial<CartItem>)
-      .filter((item) => typeof item.id === "string" && typeof item.name === "string")
-      .map((item) => ({
-        id: item.id!,
-        name: item.name!,
-        price: typeof item.price === "number" ? item.price : 0,
-        qty: typeof item.qty === "number" ? Math.max(1, item.qty) : 1,
-        imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : undefined,
-      }));
-  } catch {
-    return [];
+function fieldClassName(error?: string) {
+  return cn("h-11 rounded-xl", error ? "border-rose-300 focus-visible:ring-rose-200" : "");
+}
+
+function getSessionPhone(
+  session: ReturnType<typeof useSession>["data"],
+) {
+  return (session?.user as { phone?: string | null } | undefined)?.phone ?? "";
+}
+
+function toCheckoutPayload(form: CheckoutFormState): CheckoutInput {
+  return {
+    billingAddress: {
+      city: form.city,
+      country: "India",
+      email: form.email,
+      fullName: form.fullName,
+      line1: form.addressLine1,
+      ...(form.addressLine2.trim()
+        ? { line2: form.addressLine2.trim() }
+        : {}),
+      phone: form.phone,
+      postalCode: form.postalCode,
+      state: form.state,
+    },
+    shippingAddress: {
+      city: form.city,
+      country: "India",
+      email: form.email,
+      fullName: form.fullName,
+      line1: form.addressLine1,
+      ...(form.addressLine2.trim()
+        ? { line2: form.addressLine2.trim() }
+        : {}),
+      phone: form.phone,
+      postalCode: form.postalCode,
+      state: form.state,
+    },
+  };
+}
+
+function mapValidationErrors(error: ZodError<CheckoutInput>): CheckoutFormErrors {
+  const nextErrors: CheckoutFormErrors = {};
+
+  for (const issue of error.issues) {
+    if (issue.path[0] !== "shippingAddress") {
+      continue;
+    }
+
+    const field = issue.path[1];
+
+    if (typeof field !== "string" || nextErrors[field as keyof CheckoutFormState]) {
+      continue;
+    }
+
+    switch (field) {
+      case "fullName":
+      case "email":
+      case "phone":
+      case "city":
+      case "state":
+      case "postalCode":
+        nextErrors[field] = issue.message;
+        break;
+      case "line1":
+        nextErrors.addressLine1 = issue.message;
+        break;
+      case "line2":
+        nextErrors.addressLine2 = issue.message;
+        break;
+      default:
+        break;
+    }
   }
+
+  return nextErrors;
+}
+
+function CartPageSkeleton() {
+  return (
+    <main className="bg-luxury-ivory py-8 text-slate-900 dark:bg-neutral-950 dark:text-slate-50">
+      <div className="luxury-shell">
+        <div className="grid gap-6 lg:grid-cols-[1fr_370px]">
+          <div className="space-y-5 rounded-[1.75rem] border border-[#ecdcc6] bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-white/5">
+            <div className="h-28 animate-pulse rounded-2xl bg-[#f7f1ea]" />
+            <div className="h-40 animate-pulse rounded-2xl bg-[#f3ede4]" />
+            <div className="h-40 animate-pulse rounded-2xl bg-[#f3ede4]" />
+          </div>
+          <div className="h-80 animate-pulse rounded-[1.75rem] bg-[#f7f1ea]" />
+        </div>
+      </div>
+    </main>
+  );
 }
 
 export default function CheckoutPage() {
-  const [items, setItems] = React.useState<CartItem[]>([]);
+  const { data: session, status } = useSession();
+  const sessionPhone = getSessionPhone(session);
+  const items = useCartStore((state) => state.items);
+  const clearCart = useCartStore((state) => state.clearCart);
+  const setCartItems = useCartStore((state) => state.setItems);
   const [form, setForm] = React.useState(initialForm);
-  const [placing, setPlacing] = React.useState(false);
+  const [formErrors, setFormErrors] = React.useState<CheckoutFormErrors>({});
+  const [checkoutError, setCheckoutError] = React.useState<string | null>(null);
+  const [completedOrder, setCompletedOrder] = React.useState<{
+    orderNumber: string;
+    totalAmount: number;
+  } | null>(null);
+  const [isRefreshingCart, setIsRefreshingCart] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   React.useEffect(() => {
-    setItems(readCartFromStorage());
-  }, []);
+    setForm((current) => ({
+      ...current,
+      email: current.email || session?.user?.email || "",
+      fullName: current.fullName || session?.user?.name || "",
+      phone: current.phone || sessionPhone,
+    }));
+  }, [session?.user?.email, session?.user?.name, sessionPhone]);
 
-  const subtotal = React.useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.qty, 0),
-    [items],
-  );
-  const shipping = subtotal > 0 ? 0 : 0;
-  const tax = Math.round(subtotal * 0.03);
-  const total = subtotal + shipping + tax;
-
-  const itemCount = items.reduce((sum, item) => sum + item.qty, 0);
-
-  const updateForm = (key: keyof typeof initialForm, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const placeOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (items.length === 0) {
-      toast.error("Your cart is empty.");
+  React.useEffect(() => {
+    if (status !== "authenticated") {
       return;
     }
-    setPlacing(true);
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    toast.success("Order placed! Payment gateway can be connected next.");
-    setPlacing(false);
-  };
+
+    let cancelled = false;
+    setIsRefreshingCart(true);
+
+    void (async () => {
+      try {
+        await mergeCartAfterLogin();
+        const cart = await fetchServerCart();
+
+        if (!cancelled) {
+          setCartItems(mapApiCartToStoreItems(cart));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCheckoutError(
+            error instanceof Error
+              ? error.message
+              : "We could not refresh your bag. Please go back to your cart and try again.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRefreshingCart(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setCartItems, status]);
+
+  const subtotal = React.useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items],
+  );
+  const shipping = 0;
+  const tax = 0;
+  const total = subtotal + shipping + tax;
+  const itemCount = React.useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity, 0),
+    [items],
+  );
+
+  const payload = React.useMemo(() => toCheckoutPayload(form), [form]);
+  const isFormComplete = React.useMemo(
+    () => checkoutSchema.safeParse(payload).success,
+    [payload],
+  );
 
   const canSubmit =
-    form.fullName &&
-    form.email &&
-    form.phone &&
-    form.addressLine1 &&
-    form.city &&
-    form.state &&
-    form.postalCode &&
-    items.length > 0;
+    mounted &&
+    status === "authenticated" &&
+    items.length > 0 &&
+    !isRefreshingCart &&
+    !isSubmitting &&
+    isFormComplete;
+  const canPromptSignIn =
+    mounted &&
+    status !== "loading" &&
+    status !== "authenticated" &&
+    items.length > 0 &&
+    !isRefreshingCart;
+  const isPrimaryActionDisabled =
+    status === "authenticated" ? !canSubmit : !canPromptSignIn;
+
+  const updateForm = (key: keyof CheckoutFormState, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFormErrors((current) => ({ ...current, [key]: undefined }));
+    setCheckoutError(null);
+  };
+
+  const handleSignIn = () => {
+    setCheckoutError(null);
+    openCustomerLogin();
+    toast("Sign in to continue to payment.");
+  };
+
+  const onSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (status !== "authenticated") {
+      setCheckoutError(
+        "Sign in from the header first so we can validate and secure your order before payment.",
+      );
+      return;
+    }
+
+    if (isRefreshingCart) {
+      setCheckoutError("We are still syncing your bag. Please wait a moment.");
+      return;
+    }
+
+    if (items.length === 0) {
+      setCheckoutError("Your bag is empty.");
+      return;
+    }
+
+    const parsed = checkoutSchema.safeParse(payload);
+
+    if (!parsed.success) {
+      setFormErrors(mapValidationErrors(parsed.error));
+      setCheckoutError("Please correct the highlighted details before continuing.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setCheckoutError(null);
+    setFormErrors({});
+
+    try {
+      const checkoutResponse = await createCheckoutOrder(parsed.data);
+      const payment = await createRazorpayOrder(checkoutResponse.order.id);
+      const razorpayResult = await openRazorpayCheckout(payment, {
+        contact: form.phone,
+        email: form.email,
+        name: form.fullName,
+      });
+
+      await verifyRazorpayPayment({
+        orderId: checkoutResponse.order.id,
+        razorpayOrderId: razorpayResult.razorpay_order_id,
+        razorpayPaymentId: razorpayResult.razorpay_payment_id,
+        razorpaySignature: razorpayResult.razorpay_signature,
+      });
+
+      setCompletedOrder({
+        orderNumber: checkoutResponse.order.orderNumber,
+        totalAmount: checkoutResponse.order.totalAmount,
+      });
+      clearCart();
+      toast.success("Payment successful.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We could not complete checkout right now.";
+
+      setCheckoutError(message);
+
+      if (message === "Payment was cancelled.") {
+        toast("Payment cancelled.");
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!mounted) {
+    return <CartPageSkeleton />;
+  }
+
+  if (completedOrder) {
+    return (
+      <main className="bg-luxury-ivory py-10 text-slate-900 dark:bg-neutral-950 dark:text-slate-50">
+        <div className="luxury-shell max-w-3xl">
+          <div className="rounded-[2rem] border border-[#ecdcc6] bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+              <ShieldCheck className="size-8" />
+            </div>
+            <p className="mt-6 text-sm font-medium uppercase tracking-[0.25em] text-[#7a1f24]">
+              Payment Confirmed
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+              Your order is placed
+            </h1>
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+              Order <span className="font-semibold">{completedOrder.orderNumber}</span>
+              {" "}for{" "}
+              <span className="font-semibold">
+                {formatINR(completedOrder.totalAmount)}
+              </span>{" "}
+              has been confirmed.
+            </p>
+
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Button asChild className="rounded-full bg-[#7a1f24] px-6 text-white hover:bg-[#64181d]">
+                <Link href="/">Continue Shopping</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href="/cart">View Bag</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-luxury-ivory py-8 text-slate-900 dark:bg-neutral-950 dark:text-slate-50">
@@ -113,45 +390,97 @@ export default function CheckoutPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-[#7a1f24]">Secure Checkout</p>
-            <h1 className="text-3xl font-semibold tracking-tight">Complete Your Order</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Complete Your Order
+            </h1>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-[#eadfce] bg-white px-4 py-2 text-xs font-medium text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
             <ShieldCheck className="size-4 text-emerald-600" />
-            100% Secure Payment
+            Server-validated order totals
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_370px]">
           <form
             id="checkout-form"
-            onSubmit={placeOrder}
+            onSubmit={onSubmit}
             className="space-y-5 rounded-[1.75rem] border border-[#ecdcc6] bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-white/5"
           >
+            {status !== "authenticated" ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p>
+                    Sign in to continue. Your bag stays saved locally until you
+                    complete payment.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={handleSignIn}
+                    className="rounded-full bg-[#7a1f24] px-5 text-white hover:bg-[#64181d]"
+                  >
+                    Sign in to Continue
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {isRefreshingCart ? (
+              <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                Refreshing your bag before payment.
+              </div>
+            ) : null}
+
+            {checkoutError ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {checkoutError}
+              </div>
+            ) : null}
+
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <BadgeCheck className="size-5 text-[#7a1f24]" />
                 <h2 className="text-lg font-semibold">Contact Information</h2>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Input
-                  placeholder="Full name"
-                  className="h-11 rounded-xl"
-                  value={form.fullName}
-                  onChange={(e) => updateForm("fullName", e.target.value)}
-                />
-                <Input
-                  type="email"
-                  placeholder="Email address"
-                  className="h-11 rounded-xl"
-                  value={form.email}
-                  onChange={(e) => updateForm("email", e.target.value)}
-                />
-                <Input
-                  placeholder="Phone number"
-                  className="h-11 rounded-xl sm:col-span-2"
-                  value={form.phone}
-                  onChange={(e) => updateForm("phone", e.target.value)}
-                />
+                <div className="space-y-1.5">
+                  <Input
+                    placeholder="Full name"
+                    className={fieldClassName(formErrors.fullName)}
+                    value={form.fullName}
+                    onChange={(event) => updateForm("fullName", event.target.value)}
+                    aria-invalid={Boolean(formErrors.fullName)}
+                  />
+                  {formErrors.fullName ? (
+                    <p className="text-xs text-rose-600">{formErrors.fullName}</p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Input
+                    type="email"
+                    placeholder="Email address"
+                    className={fieldClassName(formErrors.email)}
+                    value={form.email}
+                    onChange={(event) => updateForm("email", event.target.value)}
+                    aria-invalid={Boolean(formErrors.email)}
+                  />
+                  {formErrors.email ? (
+                    <p className="text-xs text-rose-600">{formErrors.email}</p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Input
+                    placeholder="Phone number"
+                    className={fieldClassName(formErrors.phone)}
+                    value={form.phone}
+                    onChange={(event) => updateForm("phone", event.target.value)}
+                    aria-invalid={Boolean(formErrors.phone)}
+                  />
+                  {formErrors.phone ? (
+                    <p className="text-xs text-rose-600">{formErrors.phone}</p>
+                  ) : null}
+                </div>
               </div>
             </section>
 
@@ -163,36 +492,82 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-semibold">Shipping Address</h2>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Input
-                  placeholder="Address line 1"
-                  className="h-11 rounded-xl sm:col-span-2"
-                  value={form.addressLine1}
-                  onChange={(e) => updateForm("addressLine1", e.target.value)}
-                />
-                <Input
-                  placeholder="Address line 2 (optional)"
-                  className="h-11 rounded-xl sm:col-span-2"
-                  value={form.addressLine2}
-                  onChange={(e) => updateForm("addressLine2", e.target.value)}
-                />
-                <Input
-                  placeholder="City"
-                  className="h-11 rounded-xl"
-                  value={form.city}
-                  onChange={(e) => updateForm("city", e.target.value)}
-                />
-                <Input
-                  placeholder="State"
-                  className="h-11 rounded-xl"
-                  value={form.state}
-                  onChange={(e) => updateForm("state", e.target.value)}
-                />
-                <Input
-                  placeholder="PIN code"
-                  className="h-11 rounded-xl sm:col-span-2"
-                  value={form.postalCode}
-                  onChange={(e) => updateForm("postalCode", e.target.value)}
-                />
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Input
+                    placeholder="Address line 1"
+                    className={fieldClassName(formErrors.addressLine1)}
+                    value={form.addressLine1}
+                    onChange={(event) =>
+                      updateForm("addressLine1", event.target.value)
+                    }
+                    aria-invalid={Boolean(formErrors.addressLine1)}
+                  />
+                  {formErrors.addressLine1 ? (
+                    <p className="text-xs text-rose-600">
+                      {formErrors.addressLine1}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Input
+                    placeholder="Address line 2 (optional)"
+                    className={fieldClassName(formErrors.addressLine2)}
+                    value={form.addressLine2}
+                    onChange={(event) =>
+                      updateForm("addressLine2", event.target.value)
+                    }
+                    aria-invalid={Boolean(formErrors.addressLine2)}
+                  />
+                  {formErrors.addressLine2 ? (
+                    <p className="text-xs text-rose-600">
+                      {formErrors.addressLine2}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Input
+                    placeholder="City"
+                    className={fieldClassName(formErrors.city)}
+                    value={form.city}
+                    onChange={(event) => updateForm("city", event.target.value)}
+                    aria-invalid={Boolean(formErrors.city)}
+                  />
+                  {formErrors.city ? (
+                    <p className="text-xs text-rose-600">{formErrors.city}</p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Input
+                    placeholder="State"
+                    className={fieldClassName(formErrors.state)}
+                    value={form.state}
+                    onChange={(event) => updateForm("state", event.target.value)}
+                    aria-invalid={Boolean(formErrors.state)}
+                  />
+                  {formErrors.state ? (
+                    <p className="text-xs text-rose-600">{formErrors.state}</p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Input
+                    placeholder="PIN code"
+                    className={fieldClassName(formErrors.postalCode)}
+                    value={form.postalCode}
+                    onChange={(event) =>
+                      updateForm("postalCode", event.target.value)
+                    }
+                    aria-invalid={Boolean(formErrors.postalCode)}
+                  />
+                  {formErrors.postalCode ? (
+                    <p className="text-xs text-rose-600">
+                      {formErrors.postalCode}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </section>
 
@@ -205,13 +580,14 @@ export default function CheckoutPage() {
               </div>
               <div className="rounded-2xl border border-[#eadfce] bg-[#fffbf6] p-4 dark:border-white/10 dark:bg-white/5">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium">UPI / Card / Net Banking</p>
+                  <p className="text-sm font-medium">Razorpay Checkout</p>
                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    Recommended
+                    Secure
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                  Payment gateway is ready to connect to Razorpay/Stripe.
+                  Your payable amount is recalculated on the server before payment
+                  begins.
                 </p>
               </div>
             </section>
@@ -220,8 +596,8 @@ export default function CheckoutPage() {
               <div className="flex items-start gap-2">
                 <Lock className="mt-0.5 size-4 text-[#7a1f24]" />
                 <p>
-                  Your data is encrypted and processed securely. By placing this order, you
-                  agree to our terms and return policy.
+                  We validate your bag, prices, and payment signature on the backend
+                  before confirming your order.
                 </p>
               </div>
             </div>
@@ -263,10 +639,12 @@ export default function CheckoutPage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{item.name}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-300">
-                          Qty {item.qty}
+                          Qty {item.quantity}
                         </p>
                       </div>
-                      <p className="text-sm font-semibold">{formatINR(item.price * item.qty)}</p>
+                      <p className="text-sm font-semibold">
+                        {formatINR(item.price * item.quantity)}
+                      </p>
                     </article>
                   ))
                 )}
@@ -297,12 +675,23 @@ export default function CheckoutPage() {
               </div>
 
               <Button
-                type="submit"
-                form="checkout-form"
-                disabled={!canSubmit || placing}
-                className="mt-5 h-12 w-full rounded-full bg-[#7a1f24] text-base text-white hover:bg-[#64181d]"
+                type={status === "authenticated" ? "submit" : "button"}
+                form={status === "authenticated" ? "checkout-form" : undefined}
+                onClick={
+                  status === "authenticated" ? undefined : handleSignIn
+                }
+                disabled={isPrimaryActionDisabled}
+                className="mt-5 h-12 w-full rounded-full bg-[#7a1f24] text-base text-white hover:bg-[#64181d] disabled:opacity-60"
               >
-                {placing ? "Placing Order..." : "Place Order"}
+                {isSubmitting
+                  ? "Processing Payment..."
+                  : status === "loading"
+                    ? "Checking Session..."
+                    : status !== "authenticated"
+                      ? "Sign in to Continue"
+                      : isRefreshingCart
+                        ? "Refreshing Bag..."
+                        : "Pay Securely"}
               </Button>
 
               <div className="mt-3 flex items-center justify-center gap-2 text-xs text-slate-600 dark:text-slate-300">

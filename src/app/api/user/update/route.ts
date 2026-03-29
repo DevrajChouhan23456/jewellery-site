@@ -1,8 +1,34 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
+import { getZodErrorMessage, parseJsonBody } from "@/lib/api/validation";
 import { auth } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import prisma from "@/lib/prisma";
+
+const optionalUsernameSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    const normalized = value.trim();
+    return normalized ? normalized : undefined;
+  },
+  z.string().min(1).optional(),
+);
+
+const optionalPasswordSchema = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().optional(),
+);
+
+const updateAdminCredentialsSchema = z.object({
+  currentUsername: z.string().trim().min(1, "Current username is required."),
+  currentPassword: z.string().min(1, "Current password is required."),
+  newUsername: optionalUsernameSchema,
+  newPassword: optionalPasswordSchema,
+});
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -12,11 +38,21 @@ export async function POST(req: Request) {
   }
 
   try {
-    const body = await req.json();
-    const currentUsername = body.currentUsername?.trim() ?? "";
-    const currentPassword = body.currentPassword ?? "";
-    const newUsername = body.newUsername?.trim() || null;
-    const newPassword = body.newPassword || null;
+    const parsedBody = await parseJsonBody(req, updateAdminCredentialsSchema);
+
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        {
+          error:
+            parsedBody.kind === "json"
+              ? parsedBody.message
+              : getZodErrorMessage(parsedBody.error, "Invalid credentials update request."),
+        },
+        { status: 400 },
+      );
+    }
+
+    const { currentUsername, currentPassword, newUsername, newPassword } = parsedBody.data;
 
     const admin = await prisma.adminUser.findUnique({
       where: { id: session.user.id },

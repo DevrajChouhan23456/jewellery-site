@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import React from "react";
 import { useSyncExternalStore } from "react";
 import toast from "react-hot-toast";
@@ -53,6 +54,7 @@ function CartPageSkeleton() {
 
 export default function CartPage() {
   const router = useRouter();
+  const { status } = useSession();
   const items = useCartStore((state) => state.items);
   const [coupon, setCoupon] = React.useState("");
   const [couponOpen, setCouponOpen] = React.useState(false);
@@ -128,6 +130,13 @@ export default function CartPage() {
             {syncError ? (
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 {syncError}
+              </div>
+            ) : null}
+
+            {status !== "authenticated" && items.length > 0 ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                Your bag is saved on this device. Continue to checkout and sign in
+                there before payment.
               </div>
             ) : null}
 
@@ -412,10 +421,14 @@ export default function CartPage() {
           <Button
             type="button"
             onClick={onCheckout}
-            disabled={items.length === 0 || hasPendingMutations}
+            disabled={items.length === 0 || hasPendingMutations || status === "loading"}
             className="h-12 w-[240px] rounded-full bg-[#7a1f24] text-base text-white shadow-sm hover:bg-[#6a1a1f] disabled:opacity-50 sm:w-[360px]"
           >
-            {hasPendingMutations ? "Updating Bag..." : "Proceed to Checkout"}
+            {hasPendingMutations
+              ? "Updating Bag..."
+              : status === "loading"
+                ? "Checking Session..."
+                : "Continue to Checkout"}
           </Button>
         </div>
       </div>

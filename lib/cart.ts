@@ -1,13 +1,11 @@
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
-import { getServerSession } from "next-auth";
 
-import { customerAuthOptions } from "@/lib/customer-auth";
+import { getCurrentCustomerUserId } from "@/lib/customer-session";
 import prisma from "@/lib/prisma";
 import {
   addToCartSchema,
   MAX_CART_ITEM_QUANTITY,
-  objectIdSchema,
   removeCartItemSchema,
   updateCartQuantitySchema,
 } from "@/lib/validations/cart";
@@ -58,16 +56,7 @@ type CartOperationResult =
     };
 
 async function getCurrentUserId() {
-  const session = await getServerSession(customerAuthOptions);
-
-  if (
-    typeof session?.user?.id === "string" &&
-    objectIdSchema.safeParse(session.user.id).success
-  ) {
-    return session.user.id;
-  }
-
-  return null;
+  return getCurrentCustomerUserId();
 }
 
 export async function getOrCreateCart() {

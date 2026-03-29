@@ -1,10 +1,12 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { getZodErrorMessages, parseJsonBody } from "@/lib/api/validation";
 import { auth } from "@/lib/auth";
 import { uploadImage } from "@/lib/cloudinary";
 import {prisma} from "@/lib/prisma";
 import { getStorefrontAdminData } from "@/lib/storefront";
+import { storefrontRequestSchema } from "@/lib/validations/storefront";
 
 const sectionKeys = ["category", "trending", "arrival", "gender"] as const;
 const slugPattern = /^[a-z0-9-]+$/;
@@ -103,16 +105,17 @@ export async function PUT(request: Request) {
       return unauthorizedResponse();
     }
 
-    const payload = await request.json();
-    const heroSlides = Array.isArray(payload.heroSlides) ? payload.heroSlides : [];
-    const homepageSections = Array.isArray(payload.homepageSections)
-      ? payload.homepageSections
-      : [];
-    const homepageCards =
-      payload.homepageCards && typeof payload.homepageCards === "object"
-        ? payload.homepageCards
-        : {};
-    const shopPages = Array.isArray(payload.shopPages) ? payload.shopPages : [];
+    const parsedBody = await parseJsonBody(request, storefrontRequestSchema);
+
+    if (!parsedBody.success) {
+      return validationResponse(
+        parsedBody.kind === "json"
+          ? [parsedBody.message]
+          : getZodErrorMessages(parsedBody.error),
+      );
+    }
+
+    const { heroSlides, homepageSections, homepageCards, shopPages } = parsedBody.data;
     const errors: string[] = [];
     const seenSlugs = new Set<string>();
 
@@ -246,13 +249,13 @@ export async function PUT(request: Request) {
     }
 
     const imageUploads = new Map<string, Promise<string>>();
-    const persistedHeroSlides = await Promise.all(
+    const persistedHeroSlides: Record<string, unknown>[] = await Promise.all(
       heroSlides.map(async (slide: Record<string, unknown>) => ({
         ...slide,
         imageUrl: await persistImageSource(slide.imageUrl, imageUploads),
       })),
     );
-    const persistedHomepageSections = await Promise.all(
+    const persistedHomepageSections: Record<string, unknown>[] = await Promise.all(
       homepageSections.map(async (section: Record<string, unknown>) => ({
         ...section,
         backgroundImageUrl: await persistOptionalImageSource(

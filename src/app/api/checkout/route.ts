@@ -1,14 +1,30 @@
 import { NextResponse } from "next/server";
 
-import { checkout } from "@/lib/checkout";
+import { checkoutSchema } from "@/features/checkout/validation";
+import {
+  jsonBodyErrorResponse,
+  parseJsonBody,
+} from "@/server/api/validation";
+import { checkout } from "@/server/services/checkout";
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}));
-  const result = await checkout(body);
+  const parsedBody = await parseJsonBody(request, checkoutSchema);
 
-  if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+  if (!parsedBody.success) {
+    return jsonBodyErrorResponse(parsedBody, {
+      includeFieldErrors: true,
+      validationMessage: "Invalid checkout details.",
+    });
   }
 
-  return NextResponse.json(result.data);
+  const result = await checkout(parsedBody.data);
+
+  if ("error" in result) {
+    return NextResponse.json(
+      { error: result.error },
+      { status: result.status },
+    );
+  }
+
+  return NextResponse.json({ order: result.data }, { status: result.status });
 }

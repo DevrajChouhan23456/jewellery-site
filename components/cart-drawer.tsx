@@ -142,14 +142,15 @@ export default function CartDrawer() {
               </span>
             </div>
             <p className="mt-1 text-xs leading-relaxed text-gray-500">
-              Taxes and shipping calculated at checkout.
+              Review your bag before checkout. Taxes and shipping are calculated at
+              checkout.
             </p>
             <Link
-              href="/checkout"
+              href="/cart"
               onClick={closeCart}
               className="mt-4 flex w-full items-center justify-center rounded-full bg-[#832729] py-4 text-sm font-bold uppercase tracking-widest text-white transition hover:bg-[#6a1f22] hover:shadow-lg"
             >
-              Proceed to Checkout
+              View Bag
             </Link>
           </div>
         ) : null}

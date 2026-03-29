@@ -53,6 +53,18 @@ export async function fetchServerCart() {
   return readResponse<CartApiResponse>(response);
 }
 
+export async function addServerCartItem(productId: string, quantity = 1) {
+  const response = await fetch("/api/cart/add", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ productId, quantity }),
+  });
+
+  return readResponse<CartApiResponse>(response);
+}
+
 export async function updateServerCartQuantity(productId: string, quantity: number) {
   const response = await fetch("/api/cart", {
     method: "PATCH",

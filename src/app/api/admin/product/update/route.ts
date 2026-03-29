@@ -1,29 +1,40 @@
-import { isAdmin } from "@/lib/isAdmin";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+
+import { updateProductSchema } from "@/features/admin/products/validation";
+import {
+  jsonBodyErrorResponse,
+  parseJsonBody,
+} from "@/server/api/validation";
+import { requireAdminApiAccess } from "@/server/auth/admin";
+import { updateAdminProduct } from "@/server/services/admin/products";
 
 export async function POST(req: Request) {
-  const admin = await isAdmin();
+  const unauthorized = await requireAdminApiAccess();
 
-  if (!admin) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (unauthorized) {
+    return unauthorized;
   }
 
-  const { id, ...data } = (await req.json()) as {
-    id: string;
-    name?: string;
-    slug?: string;
-    price?: number;
-    category?: string;
-    subCategory?: string | null;
-    material?: string;
-    type?: string;
-    images?: string[];
-  };
+  const parsedBody = await parseJsonBody(req, updateProductSchema);
 
-  await prisma.product.update({
-    where: { id },
-    data,
-  });
+  if (!parsedBody.success) {
+    return jsonBodyErrorResponse(parsedBody, {
+      includeFieldErrors: true,
+      validationMessage: "Please review the highlighted product fields.",
+    });
+  }
 
-  return Response.json({ success: true });
+  const result = await updateAdminProduct(parsedBody.data);
+
+  if ("error" in result) {
+    return NextResponse.json(
+      {
+        error: result.error,
+        ...(result.fieldErrors ? { fieldErrors: result.fieldErrors } : {}),
+      },
+      { status: result.status },
+    );
+  }
+
+  return NextResponse.json(result.data, { status: result.status });
 }

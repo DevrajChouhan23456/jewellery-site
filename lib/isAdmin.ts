@@ -1,7 +1,5 @@
-import { auth } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin/access";
 
 export async function isAdmin() {
-  const session = await auth();
-
-  return session?.user?.role === "ADMIN";
+  return Boolean(await getAdminSession());
 }

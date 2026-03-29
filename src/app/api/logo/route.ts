@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+
+import { createImageFileSchema, getZodErrorMessage } from "@/lib/api/validation";
 import cloudinary from "@/lib/cloudinary";
 
 const FALLBACK_LOGO_URL = "/images/logo.avif";
 const SITE_LOGO_ID = "site-logo";
+const logoUploadSchema = createImageFileSchema({
+  requiredMessage: "No file uploaded",
+});
 
 function configureCloudinary() {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -27,11 +32,16 @@ export async function POST(req: NextRequest) {
     configureCloudinary();
 
     const data = await req.formData();
-    const file = data.get("file") as Blob | null;
+    const parsedFile = logoUploadSchema.safeParse(data.get("file"));
 
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    if (!parsedFile.success) {
+      return NextResponse.json(
+        { error: getZodErrorMessage(parsedFile.error, "No file uploaded") },
+        { status: 400 },
+      );
     }
+
+    const file = parsedFile.data;
 
     const arrayBuffer = await file.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");

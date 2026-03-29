@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 
+import { createImageFileSchema, getZodErrorMessage } from "@/lib/api/validation";
 import { auth } from "@/lib/auth";
 import { uploadImage } from "@/lib/cloudinary";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const storefrontImageSchema = createImageFileSchema({
+  maxSize: MAX_FILE_SIZE,
+  maxSizeMessage: "Images must be 5 MB or smaller.",
+  allowEmptyType: false,
+});
 
 function unauthorizedResponse() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,28 +24,16 @@ export async function POST(request: Request) {
     }
 
     const formData = await request.formData();
-    const file = formData.get("file");
+    const parsedFile = storefrontImageSchema.safeParse(formData.get("file"));
 
-    if (!(file instanceof File)) {
+    if (!parsedFile.success) {
       return NextResponse.json(
-        { error: "Please choose an image file." },
+        { error: getZodErrorMessage(parsedFile.error, "Please choose an image file.") },
         { status: 400 },
       );
     }
 
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "Only image uploads are supported." },
-        { status: 400 },
-      );
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: "Images must be 5 MB or smaller." },
-        { status: 400 },
-      );
-    }
+    const file = parsedFile.data;
 
     const arrayBuffer = await file.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");

@@ -88,7 +88,11 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
       }
 
       try {
-        const response = await fetch(`/api/products?${params.toString()}`);
+        const response = await fetch(`/api/products?${params.toString()}`, { 
+          cache: 'no-store',
+          next: { revalidate: 0 }
+        });
+        console.log('[CATALOG] API URL:', `/api/products?${params.toString()}`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch products.");
@@ -98,6 +102,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
           products?: CatalogProduct[];
           total?: number;
         };
+        console.log('[CATALOG] API Response:', data);
 
         if (filters.page === 1) {
           setProducts(data.products || []);

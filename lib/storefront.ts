@@ -397,9 +397,17 @@ export async function getFilteredProducts({
   materials,
   categories,
 }: any) {
-  const where: any = {
-    category: slug,
-  };
+  console.log('[DEBUG] getFilteredProducts called with:', { slug, page, sort, minPrice, maxPrice, materials, categories: categories?.length });
+
+  const where: any = {};
+
+  if (slug && slug !== 'all') {
+    where.category = { 
+      contains: slug, 
+      mode: 'insensitive' 
+    };
+    console.log('[DEBUG] Added category filter:', where.category);
+  }
 
   if (minPrice || maxPrice) {
     where.price = {
@@ -413,8 +421,13 @@ export async function getFilteredProducts({
   }
 
   if (categories?.length) {
-    where.type = { in: categories };
+    where.type = { 
+      in: categories,
+      mode: 'insensitive'
+    };
   }
+
+  console.log('[DEBUG] Final where clause:', JSON.stringify(where, null, 2));
 
   const orderBy: Prisma.ProductOrderByWithRelationInput =
     sort === "price_asc"
@@ -426,7 +439,6 @@ export async function getFilteredProducts({
   const take = 9;
   const skip = (page - 1) * take;
 
-  // 🔥 KEY PART
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
@@ -436,6 +448,8 @@ export async function getFilteredProducts({
     }),
     prisma.product.count({ where }),
   ]);
+
+  console.log('[DEBUG] Found products:', products.length, 'Total:', total);
 
   return { products, total };
 }

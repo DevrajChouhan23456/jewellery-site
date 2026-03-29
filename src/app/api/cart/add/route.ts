@@ -1,7 +1,26 @@
+import { parseJsonBody } from "@/lib/api/validation";
 import { addItem } from "@/lib/cart";
+import { addToCartSchema } from "@/lib/validations/cart";
 
 export async function POST(req: Request) {
-  const result = await addItem(await req.json().catch(() => null));
+  const parsedBody = await parseJsonBody(req, addToCartSchema);
+
+  if (!parsedBody.success) {
+    return Response.json(
+      {
+        error:
+          parsedBody.kind === "json"
+            ? parsedBody.message
+            : "Invalid add-to-cart payload.",
+        ...(parsedBody.kind === "validation"
+          ? { fieldErrors: parsedBody.error.flatten().fieldErrors }
+          : {}),
+      },
+      { status: 400 },
+    );
+  }
+
+  const result = await addItem(parsedBody.data);
 
   if ("error" in result) {
     return Response.json(

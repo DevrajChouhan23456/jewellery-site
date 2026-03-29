@@ -1,7 +1,9 @@
-import { fetchServerCart } from "@/lib/cart-client";
+import { addServerCartItem, fetchServerCart } from "@/lib/cart-client";
 import { readCartFromStorage } from "@/lib/cart-storage";
 
-export const mergeCartAfterLogin = async () => {
+let pendingMerge: Promise<boolean> | null = null;
+
+async function performMergeCartAfterLogin() {
   const localCart = readCartFromStorage();
 
   if (!localCart.length) {
@@ -25,23 +27,18 @@ export const mergeCartAfterLogin = async () => {
   }
 
   const results = await Promise.allSettled(
-    itemsToMerge.map((item) =>
-      fetch("/api/cart/add", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          productId: item.productId,
-          quantity: item.quantity,
-        }),
-      }).then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to merge a cart item after login.");
-        }
-      }),
-    ),
+    itemsToMerge.map((item) => addServerCartItem(item.productId, item.quantity)),
   );
 
   return !results.some((result) => result.status === "rejected");
-};
+}
+
+export async function mergeCartAfterLogin() {
+  if (!pendingMerge) {
+    pendingMerge = performMergeCartAfterLogin().finally(() => {
+      pendingMerge = null;
+    });
+  }
+
+  return pendingMerge;
+}

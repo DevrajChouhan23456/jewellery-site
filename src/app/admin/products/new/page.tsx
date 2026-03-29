@@ -1,10 +1,12 @@
-import ProductForm from "@/components/admin/ProductForm";
+import ProductForm from "@/features/admin/products/components/ProductForm";
+import { requireAdminPageAccess } from "@/server/auth/admin";
 
-export default function NewProductPage() {
+export default async function NewProductPage() {
+  await requireAdminPageAccess("/admin/products/new");
+
   return (
-    <div className="p-10">
-      <h1 className="text-2xl mb-6">Add Product</h1>
+    <main className="luxury-shell py-10 sm:py-12">
       <ProductForm />
-    </div>
+    </main>
   );
 }

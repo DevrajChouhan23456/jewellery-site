@@ -5,6 +5,8 @@ import { Heart, ShoppingBag } from "lucide-react";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { addServerCartItem, mapApiCartToStoreItems } from "@/lib/cart-client";
+import type { CartItem } from "@/lib/cart-storage";
 import { useCartStore } from "@/lib/store";
 
 type WishlistGridItem = {
@@ -26,6 +28,7 @@ export default function WishlistGrid({ items: initialItems }: WishlistGridProps)
   const [items, setItems] = useState(initialItems);
   const addItem = useCartStore((state) => state.addItem);
   const openCart = useCartStore((state) => state.openCart);
+  const setCartItems = useCartStore((state) => state.setItems);
 
   const visibleItems = useMemo(
     () => items.filter((item) => item.product !== null),
@@ -61,6 +64,13 @@ export default function WishlistGrid({ items: initialItems }: WishlistGridProps)
       return;
     }
 
+    const previousCartItems = useCartStore
+      .getState()
+      .items.map((item: CartItem) => ({
+        ...item,
+        meta: item.meta ? { ...item.meta } : undefined,
+      }));
+
     addItem({
       id: wishlistItem.product.id,
       name: wishlistItem.product.name,
@@ -69,13 +79,18 @@ export default function WishlistGrid({ items: initialItems }: WishlistGridProps)
     });
     openCart();
 
-    await fetch("/api/cart/add", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ productId: wishlistItem.product.id }),
-    }).catch(() => {});
+    try {
+      const cart = await addServerCartItem(wishlistItem.product.id, 1);
+      setCartItems(mapApiCartToStoreItems(cart));
+    } catch (error) {
+      setCartItems(previousCartItems);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to move this item to your cart.",
+      );
+      return;
+    }
 
     await handleRemove(wishlistItem.id);
     toast.success("Moved item to cart.");

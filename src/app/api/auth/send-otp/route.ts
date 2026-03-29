@@ -1,13 +1,29 @@
 import { PrismaClient } from "@prisma/client";
+import { z } from "zod";
+
+import { getZodErrorMessage, parseJsonBody } from "@/lib/api/validation";
 
 const prisma = new PrismaClient();
+const sendOtpSchema = z.object({
+  phone: z.string().trim().min(10, "Invalid phone"),
+});
 
 export async function POST(req: Request) {
-  const { phone } = await req.json();
+  const parsedBody = await parseJsonBody(req, sendOtpSchema);
 
-  if (!phone || phone.length < 10) {
-    return Response.json({ error: "Invalid phone" }, { status: 400 });
+  if (!parsedBody.success) {
+    return Response.json(
+      {
+        error:
+          parsedBody.kind === "json"
+            ? parsedBody.message
+            : getZodErrorMessage(parsedBody.error, "Invalid phone"),
+      },
+      { status: 400 },
+    );
   }
+
+  const { phone } = parsedBody.data;
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 

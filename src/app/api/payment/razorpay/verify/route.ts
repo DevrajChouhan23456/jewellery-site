@@ -1,70 +1,42 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
-import prisma from "@/lib/prisma";
-import { verifySignature } from "@/lib/payments/razorpay";
-
-const objectIdSchema = z
-  .string()
-  .regex(/^[a-fA-F0-9]{24}$/, "Invalid id format (expected ObjectId)");
-
-const verifySchema = z.object({
-  orderId: objectIdSchema,
-  razorpayOrderId: z.string().trim().min(1),
-  razorpayPaymentId: z.string().trim().min(1),
-  razorpaySignature: z.string().trim().min(1),
-});
+import { razorpayPaymentVerificationSchema } from "@/features/payments/razorpay/validation";
+import {
+  jsonBodyErrorResponse,
+  parseJsonBody,
+} from "@/server/api/validation";
+import { getCurrentCustomerUserId } from "@/server/auth/customer-session";
+import { verifyRazorpayPayment } from "@/server/services/payments/razorpay";
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}));
-  const parsed = verifySchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
+  const parsedBody = await parseJsonBody(
+    request,
+    razorpayPaymentVerificationSchema,
+  );
+
+  if (!parsedBody.success) {
+    return jsonBodyErrorResponse(parsedBody, {
+      validationMessage: "Invalid payment confirmation.",
+    });
   }
 
-  const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = parsed.data;
+  const userId = await getCurrentCustomerUserId();
 
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    select: {
-      id: true,
-      razorpayOrderId: true,
-      paymentStatus: true,
-      status: true,
-    },
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Please sign in to verify your payment." },
+      { status: 401 },
+    );
+  }
+
+  const result = await verifyRazorpayPayment({
+    ...parsedBody.data,
+    userId,
   });
 
-  if (!order) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  if (order.paymentStatus === "PAID") {
-    return NextResponse.json({ message: "Already verified" });
-  }
-
-  if (!order.razorpayOrderId || order.razorpayOrderId !== razorpayOrderId) {
-    return NextResponse.json({ error: "Razorpay order mismatch" }, { status: 400 });
-  }
-
-  const isValid = verifySignature({
-    razorpayOrderId,
-    razorpayPaymentId,
-    razorpaySignature,
-  });
-
-  if (!isValid) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-  }
-
-  await prisma.order.update({
-    where: { id: order.id },
-    data: {
-      paymentStatus: "PAID",
-      status: order.status === "PENDING" ? "CONFIRMED" : order.status,
-      razorpayPaymentId,
-      razorpaySignature,
-    },
-  });
-
-  return NextResponse.json({ message: "Payment verified", orderId: order.id });
+  return NextResponse.json(result.data, { status: result.status });
 }

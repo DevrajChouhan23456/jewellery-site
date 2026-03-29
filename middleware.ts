@@ -12,6 +12,13 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[MIDDLEWARE] Token for admin route:', { 
+      hasToken: !!token, 
+      role: token?.role 
+    });
+  }
+
   if (!token) {
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set(

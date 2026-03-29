@@ -1,38 +1,40 @@
-import { randomUUID } from "node:crypto";
+import { NextResponse } from "next/server";
 
-import { isAdmin } from "@/lib/isAdmin";
-import { prisma } from "@/lib/prisma";
+import { createProductSchema } from "@/features/admin/products/validation";
+import {
+  jsonBodyErrorResponse,
+  parseJsonBody,
+} from "@/server/api/validation";
+import { requireAdminApiAccess } from "@/server/auth/admin";
+import { createAdminProduct } from "@/server/services/admin/products";
 
 export async function POST(req: Request) {
-  const admin = await isAdmin();
+  const unauthorized = await requireAdminApiAccess();
 
-  if (!admin) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (unauthorized) {
+    return unauthorized;
   }
 
-  const body = (await req.json()) as {
-    name?: string;
-    slug?: string;
-    price?: number;
-    category?: string;
-    subCategory?: string | null;
-    material?: string;
-    type?: string;
-    images?: string[];
-  };
+  const parsedBody = await parseJsonBody(req, createProductSchema);
 
-  const product = await prisma.product.create({
-    data: {
-      name: body.name ?? "Untitled Product",
-      slug: body.slug ?? randomUUID(),
-      price: typeof body.price === "number" ? body.price : 0,
-      category: body.category ?? "jewellery",
-      subCategory: body.subCategory ?? null,
-      material: body.material ?? "gold",
-      type: body.type ?? "ring",
-      images: Array.isArray(body.images) ? body.images : [],
-    },
-  });
+  if (!parsedBody.success) {
+    return jsonBodyErrorResponse(parsedBody, {
+      includeFieldErrors: true,
+      validationMessage: "Please review the highlighted product fields.",
+    });
+  }
 
-  return Response.json(product);
+  const result = await createAdminProduct(parsedBody.data);
+
+  if ("error" in result) {
+    return NextResponse.json(
+      {
+        error: result.error,
+        ...(result.fieldErrors ? { fieldErrors: result.fieldErrors } : {}),
+      },
+      { status: result.status },
+    );
+  }
+
+  return NextResponse.json(result.data, { status: result.status });
 }

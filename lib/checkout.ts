@@ -1,147 +1,335 @@
-import { z } from "zod";
+import type { OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 
-import { auth } from "@/lib/auth";
-import prisma from "@/lib/prisma";
 import { getOrCreateCart } from "@/lib/cart";
-import { fetchProductPrices } from "@/lib/prisma-helpers";
+import { getCurrentCustomerSession, getCurrentCustomerUserId } from "@/lib/customer-session";
+import {
+  buildCartFingerprint,
+  buildCheckoutOrderMetadata,
+  calculateOrderTotals,
+  parseCheckoutOrderMetadata,
+} from "@/lib/orders";
+import prisma from "@/lib/prisma";
+import type { CheckoutInput } from "@/lib/validations/checkout";
+import { checkoutSchema } from "@/lib/validations/checkout";
 
-const objectIdSchema = z
-  .string()
-  .regex(/^[a-fA-F0-9]{24}$/, "Invalid id format (expected ObjectId)");
+type CheckoutDbClient = Prisma.TransactionClient | typeof prisma;
 
-const addressSchema = z.object({
-  fullName: z.string().trim().min(1).max(120),
-  phone: z.string().trim().min(6).max(20),
-  line1: z.string().trim().min(1).max(200),
-  line2: z.string().trim().max(200).optional(),
-  city: z.string().trim().min(1).max(80),
-  state: z.string().trim().min(1).max(80),
-  postalCode: z.string().trim().min(3).max(20),
-  country: z.string().trim().min(2).max(80),
-});
+export type CheckoutCartSnapshotItem = {
+  imageUrl: string | null;
+  name: string;
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+};
 
-const checkoutSchema = z.object({
-  shippingAddress: addressSchema,
-  billingAddress: addressSchema.optional(),
-  notes: z.string().max(500).optional(),
-});
+export type CheckoutOrderSummary = {
+  currency: string;
+  id: string;
+  itemCount: number;
+  orderNumber: string;
+  paymentStatus: PaymentStatus;
+  status: OrderStatus;
+  subtotalAmount: number;
+  totalAmount: number;
+};
 
-type CheckoutInput = z.infer<typeof checkoutSchema>;
+type CheckoutResult =
+  | {
+      data: CheckoutOrderSummary;
+      status: 200;
+    }
+  | {
+      error: string;
+      status: number;
+    };
 
-function computeTotals(items: { quantity: number; product: { price: number } }[]) {
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.quantity * (item.product?.price ?? 0),
-    0,
-  );
-  const taxAmount = 0;
-  const shippingAmount = 0;
-  const discountAmount = 0;
-  const totalAmount = Math.max(0, subtotal - discountAmount + taxAmount + shippingAmount);
-  return { subtotal, taxAmount, shippingAmount, discountAmount, totalAmount };
+type CheckoutCartSnapshotResult =
+  | {
+      data: CheckoutCartSnapshotItem[];
+    }
+  | {
+      error: string;
+      status: number;
+    };
+
+function toCheckoutOrderSummary(order: {
+  currency: string;
+  id: string;
+  items: { quantity: number }[];
+  orderNumber: string;
+  paymentStatus: PaymentStatus;
+  status: OrderStatus;
+  subtotalAmount: number;
+  totalAmount: number;
+}): CheckoutOrderSummary {
+  return {
+    currency: order.currency,
+    id: order.id,
+    itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+    orderNumber: order.orderNumber,
+    paymentStatus: order.paymentStatus,
+    status: order.status,
+    subtotalAmount: order.subtotalAmount,
+    totalAmount: order.totalAmount,
+  };
 }
 
-export async function checkout(body: unknown) {
-  const parsed = checkoutSchema.safeParse(body);
-  if (!parsed.success) {
-    return { error: parsed.error.format(), status: 400 };
-  }
-  const input: CheckoutInput = parsed.data;
+export async function getCheckoutCartSnapshot(
+  db: CheckoutDbClient,
+  cartId: string,
+  userId: string,
+): Promise<CheckoutCartSnapshotResult> {
+  const cartItems = await db.cartItem.findMany({
+    where: {
+      cartId,
+      userId,
+    },
+    select: {
+      productId: true,
+      quantity: true,
+      shopPageProductId: true,
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
 
-  // Attach customer if present
-  const session = await auth().catch(() => null);
-  const customerId =
-    typeof session?.user?.id === "string" && objectIdSchema.safeParse(session.user.id).success
-      ? session.user.id
-      : null;
+  if (cartItems.length === 0) {
+    return { error: "Your bag is empty.", status: 400 };
+  }
+
+  const checkoutProductIds = Array.from(
+    new Set(cartItems.map((item) => item.shopPageProductId ?? item.productId)),
+  );
+
+  const products = await db.shopPageProduct.findMany({
+    where: {
+      id: {
+        in: checkoutProductIds,
+      },
+    },
+    select: {
+      id: true,
+      imageUrl: true,
+      images: true,
+      name: true,
+      price: true,
+    },
+  });
+
+  const productMap = new Map(
+    products.map((product) => [
+      product.id,
+      {
+        imageUrl: product.imageUrl ?? product.images[0] ?? null,
+        name: product.name,
+        unitPrice: product.price,
+      },
+    ]),
+  );
+
+  const snapshotItems: CheckoutCartSnapshotItem[] = [];
+
+  for (const item of cartItems) {
+    const checkoutProductId = item.shopPageProductId ?? item.productId;
+    const product = productMap.get(checkoutProductId);
+
+    if (!product) {
+      return {
+        error:
+          "One or more products in your bag are no longer available for checkout. Please review your bag and try again.",
+        status: 409,
+      };
+    }
+
+    snapshotItems.push({
+      imageUrl: product.imageUrl,
+      name: product.name,
+      productId: checkoutProductId,
+      quantity: item.quantity,
+      unitPrice: product.unitPrice,
+    });
+  }
+
+  return { data: snapshotItems };
+}
+
+export async function checkout(body: unknown): Promise<CheckoutResult> {
+  const parsed = checkoutSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return { error: "Invalid checkout details.", status: 400 };
+  }
+
+  const input: CheckoutInput = parsed.data;
+  const [session, userId] = await Promise.all([
+    getCurrentCustomerSession(),
+    getCurrentCustomerUserId(),
+  ]);
+
+  if (!userId) {
+    return { error: "Please sign in to continue to checkout.", status: 401 };
+  }
 
   const cart = await getOrCreateCart();
 
-  // All critical writes in a transaction
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Re-read cart with items and products inside the transaction for consistency
-      const fullCart = await tx.cart.findUnique({
+      const activeCart = await tx.cart.findUnique({
         where: { id: cart.id },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
+
+      if (!activeCart || activeCart.status !== "ACTIVE") {
+        return {
+          error: "Your active bag could not be found. Please refresh and try again.",
+          status: 409,
+        } as const;
+      }
+
+      const snapshotResult = await getCheckoutCartSnapshot(tx, activeCart.id, userId);
+
+      if ("error" in snapshotResult) {
+        return snapshotResult;
+      }
+
+      const snapshotItems = snapshotResult.data;
+      const fingerprint = buildCartFingerprint(
+        snapshotItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+      );
+      const totals = calculateOrderTotals(snapshotItems);
+
+      const draftOrder = await tx.order.findFirst({
+        where: {
+          cartId: activeCart.id,
+          paymentStatus: {
+            in: ["FAILED", "PENDING"],
+          },
+          status: "PENDING",
+        },
         include: {
           items: {
-            include: {
-              product: { select: { id: true, name: true, price: true } },
+            select: {
+              quantity: true,
+            },
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      const orderMetadata = buildCheckoutOrderMetadata({
+        cartFingerprint: fingerprint,
+        customerEmail: input.shippingAddress.email,
+        customerUserId: userId,
+        notes: input.notes,
+      });
+
+      if (draftOrder) {
+        const previousMetadata = parseCheckoutOrderMetadata(draftOrder.metadata);
+        const cartChanged = previousMetadata.cartFingerprint !== fingerprint;
+
+        await tx.orderItem.deleteMany({
+          where: { orderId: draftOrder.id },
+        });
+
+        const updatedOrder = await tx.order.update({
+          where: { id: draftOrder.id },
+          data: {
+            billingAddress: input.billingAddress ?? input.shippingAddress,
+            currency: "INR",
+            discountAmount: totals.discountAmount,
+            metadata: orderMetadata,
+            paymentStatus: "PENDING",
+            razorpayOrderId: cartChanged ? null : draftOrder.razorpayOrderId,
+            razorpayPaymentId: null,
+            razorpaySignature: null,
+            shippingAddress: input.shippingAddress,
+            shippingAmount: totals.shippingAmount,
+            status: "PENDING",
+            subtotalAmount: totals.subtotal,
+            taxAmount: totals.taxAmount,
+            totalAmount: totals.totalAmount,
+            items: {
+              create: snapshotItems.map((item) => ({
+                lineTotal: item.quantity * item.unitPrice,
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+              })),
+            },
+          },
+          include: {
+            items: {
+              select: {
+                quantity: true,
+              },
+            },
+          },
+        });
+
+        return {
+          data: toCheckoutOrderSummary(updatedOrder),
+          status: 200,
+        } as const;
+      }
+
+      const createdOrder = await tx.order.create({
+        data: {
+          billingAddress: input.billingAddress ?? input.shippingAddress,
+          cartId: activeCart.id,
+          currency: "INR",
+          discountAmount: totals.discountAmount,
+          metadata: orderMetadata,
+          paymentStatus: "PENDING",
+          shippingAddress: input.shippingAddress,
+          shippingAmount: totals.shippingAmount,
+          status: "PENDING",
+          subtotalAmount: totals.subtotal,
+          taxAmount: totals.taxAmount,
+          totalAmount: totals.totalAmount,
+          items: {
+            create: snapshotItems.map((item) => ({
+              lineTotal: item.quantity * item.unitPrice,
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+            })),
+          },
+        },
+        include: {
+          items: {
+            select: {
+              quantity: true,
             },
           },
         },
       });
 
-      if (!fullCart) {
-        throw new Error("Cart not found");
-      }
-
-      if (fullCart.items.length === 0) {
-        return { error: "Cart is empty", status: 400 } as const;
-      }
-
-      // If an order already exists for this cart, return it to avoid duplicates
-      const existingOrder = await tx.order.findFirst({
-        where: { cartId: fullCart.id },
-        select: { id: true, orderNumber: true, totalAmount: true, status: true },
-      });
-      if (existingOrder) {
-        return { data: existingOrder, status: 200 } as const;
-      }
-
-      // Validate that every product still exists
-      for (const item of fullCart.items) {
-        if (!item.product) {
-          return { error: `Product no longer available (id: ${item.productId})`, status: 409 } as const;
-        }
-      }
-
-      // Refresh prices in bulk to avoid stale reads
-      const refreshedPrices = await fetchProductPrices(fullCart.items.map((i) => i.productId));
-      fullCart.items.forEach((item, idx) => {
-        const fresh = refreshedPrices[idx];
-        if (fresh !== null) item.product!.price = fresh;
-      });
-
-      const totals = computeTotals(fullCart.items);
-
-      const order = await tx.order.create({
-        data: {
-          customerId: customerId ?? undefined,
-          cartId: fullCart.id,
-          status: "PENDING",
-          paymentStatus: "PENDING",
-          currency: "INR",
-          subtotalAmount: totals.subtotal,
-          taxAmount: totals.taxAmount,
-          shippingAmount: totals.shippingAmount,
-          discountAmount: totals.discountAmount,
-          totalAmount: totals.totalAmount,
-          shippingAddress: input.shippingAddress,
-          billingAddress: input.billingAddress ?? input.shippingAddress,
-          metadata: input.notes ? { notes: input.notes } : undefined,
-          items: {
-            create: fullCart.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.product!.price,
-              lineTotal: item.quantity * item.product!.price,
-            })),
-          },
-        },
-        select: { id: true, orderNumber: true, totalAmount: true, status: true },
-      });
-
-      await tx.cart.update({
-        where: { id: fullCart.id },
-        data: { status: "CHECKED_OUT" },
-      });
-
-      return { data: order, status: 200 } as const;
+      return {
+        data: toCheckoutOrderSummary(createdOrder),
+        status: 200,
+      } as const;
     });
 
     return result;
   } catch (error) {
-    console.error("Checkout transaction failed.");
-    return { error: "An unexpected error occurred during checkout.", status: 500 };
+    console.error("Checkout transaction failed:", error);
+
+    return {
+      error:
+        typeof session?.user?.email === "string"
+          ? "We could not prepare your order right now. Please try again."
+          : "We could not prepare your order right now.",
+      status: 500,
+    };
   }
 }

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
+import { createImageFileSchema, getZodErrorMessage } from "@/lib/api/validation";
 import { uploadImage } from "@/lib/cloudinary";
 import prisma from "@/lib/prisma";
+
+const sliderUploadSchema = createImageFileSchema({
+  requiredMessage: "No file provided.",
+});
 
 export async function GET() {
   try {
@@ -26,11 +31,16 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+    const parsedFile = sliderUploadSchema.safeParse(formData.get("file"));
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided." }, { status: 400 });
+    if (!parsedFile.success) {
+      return NextResponse.json(
+        { error: getZodErrorMessage(parsedFile.error, "No file provided.") },
+        { status: 400 },
+      );
     }
+
+    const file = parsedFile.data;
 
     const arrayBuffer = await file.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");
