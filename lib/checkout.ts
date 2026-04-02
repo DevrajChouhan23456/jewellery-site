@@ -82,7 +82,6 @@ export async function getCheckoutCartSnapshot(
   const cartItems = await db.cartItem.findMany({
     where: {
       cartId,
-      userId,
     },
     select: {
       productId: true,
@@ -229,7 +228,6 @@ export async function checkout(body: unknown): Promise<CheckoutResult> {
       const orderMetadata = buildCheckoutOrderMetadata({
         cartFingerprint: fingerprint,
         customerEmail: input.shippingAddress.email,
-        customerUserId: userId,
         notes: input.notes,
       });
 
@@ -284,6 +282,7 @@ export async function checkout(body: unknown): Promise<CheckoutResult> {
 
       const createdOrder = await tx.order.create({
         data: {
+          userId: userId,
           billingAddress: input.billingAddress ?? input.shippingAddress,
           cartId: activeCart.id,
           currency: "INR",

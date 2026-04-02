@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { withAccelerate } from "@prisma/extension-accelerate";
 
 import { hashPassword } from "../lib/password";
+import { toProductSlug } from "../lib/validations/product";
 
 const prisma = new PrismaClient({
 }).$extends(withAccelerate());
@@ -471,6 +472,7 @@ async function seedShopPages() {
     await prisma.shopPageProduct.createMany({
       data: page.products.map((product, index) => ({
         ...product,
+        slug: toProductSlug(product.name),
         order: product.order ?? index + 1,
         shopPageId: shopPage.id,
         images: product.imageUrl ? [product.imageUrl, product.imageUrl, product.imageUrl] : [],

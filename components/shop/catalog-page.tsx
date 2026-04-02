@@ -2,15 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Heart, Users, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { VariableRewardPopup, useVariableRewards } from "@/components/variable-reward-popup";
 
 type CatalogProduct = {
   id: string;
   name: string;
   price: number;
   imageUrl?: string | null;
+  slug?: string;
 };
 
 type CatalogPageData = {
@@ -33,16 +36,20 @@ type CatalogPageProps = {
 };
 
 function formatINR(price: number) {
-  return `INR ${price.toLocaleString("en-IN")}`;
+  return `₹ ${price.toLocaleString("en-IN")}`;
 }
 
 export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { showPopup, currentDiscount, closePopup } = useVariableRewards();
 
   const [products, setProducts] = useState<CatalogProduct[]>(page.products || []);
   const [total, setTotal] = useState(page.products.length);
   const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const observerRef = useRef<HTMLDivElement>(null);
+
   const [filters, setFilters] = useState<CatalogFilters>({
     page: 1,
     sort: searchParams.get("sort") || "latest",
@@ -67,9 +74,77 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
           : [...prev[type], value],
       };
     });
+    setHasMore(true);
   };
 
+  // 🔥 INFINITE SCROLL LOGIC
+  const loadMoreProducts = useCallback(async () => {
+    if (loading || !hasMore) return;
+
+    setLoading(true);
+    const nextPage = filters.page + 1;
+
+    const params = new URLSearchParams();
+    params.set("slug", page.slug);
+    params.set("page", String(nextPage));
+    params.set("sort", filters.sort);
+
+    if (filters.minPrice) params.set("minPrice", filters.minPrice);
+    if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+    if (filters.materials.length)
+      params.set("materials", filters.materials.join(","));
+    if (filters.categories.length)
+      params.set("categories", filters.categories.join(","));
+
+    try {
+      const res = await fetch(`/api/products?${params.toString()}`, {
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+      const newProducts = data.products || [];
+
+      if (newProducts.length === 0) {
+        setHasMore(false);
+      } else {
+        setProducts((prev) => [...prev, ...newProducts]);
+        setFilters((prev) => ({ ...prev, page: nextPage }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, loading, hasMore, page.slug]);
+
+  // Intersection Observer for infinite scroll
   useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadMoreProducts();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [loadMoreProducts, hasMore, loading]);
+
+  // 🔥 FETCH PRODUCTS
+  useEffect(() => {
+    // If page.products is already populated (from ShopPageProduct), don't fetch API
+    if (page.products && page.products.length > 0) {
+      setProducts(page.products);
+      setTotal(page.products.length);
+      setHasMore(page.products.length >= 9);
+      return;
+    }
+
     async function fetchProducts() {
       setLoading(true);
 
@@ -80,273 +155,284 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
 
       if (filters.minPrice) params.set("minPrice", filters.minPrice);
       if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
-      if (filters.materials.length) {
+      if (filters.materials.length)
         params.set("materials", filters.materials.join(","));
-      }
-      if (filters.categories.length) {
+      if (filters.categories.length)
         params.set("categories", filters.categories.join(","));
-      }
 
       try {
-        const response = await fetch(`/api/products?${params.toString()}`, { 
-          cache: 'no-store',
-          next: { revalidate: 0 }
+        const res = await fetch(`/api/products?${params.toString()}`, {
+          cache: "no-store",
         });
-        console.log('[CATALOG] API URL:', `/api/products?${params.toString()}`);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch products.");
-        }
+        const data = await res.json();
 
-        const data = (await response.json()) as {
-          products?: CatalogProduct[];
-          total?: number;
-        };
-        console.log('[CATALOG] API Response:', data);
-
-        if (filters.page === 1) {
-          setProducts(data.products || []);
-        } else {
-          setProducts((prev) => [...prev, ...(data.products || [])]);
-        }
-
+        setProducts(data.products || []);
         setTotal(data.total || 0);
-      } catch (error) {
-        console.error(error);
+        setHasMore((data.products || []).length >= 9);
+      } catch (err) {
+        console.error(err);
         setProducts([]);
       } finally {
         setLoading(false);
       }
     }
 
-    void fetchProducts();
-  }, [
-    filters.page,
-    filters.sort,
-    filters.minPrice,
-    filters.maxPrice,
-    filters.materials,
-    filters.categories,
-    page.slug,
-  ]);
+    fetchProducts();
+  }, [filters.sort, filters.minPrice, filters.maxPrice, filters.materials, filters.categories, page.slug]);
 
+  // 🔥 SYNC URL
   useEffect(() => {
     const params = new URLSearchParams();
 
-    if (filters.materials.length) params.set("materials", filters.materials.join(","));
-    if (filters.categories.length) params.set("categories", filters.categories.join(","));
+    if (filters.materials.length)
+      params.set("materials", filters.materials.join(","));
+    if (filters.categories.length)
+      params.set("categories", filters.categories.join(","));
     if (filters.minPrice) params.set("minPrice", filters.minPrice);
     if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
     if (filters.sort) params.set("sort", filters.sort);
 
     router.replace(`?${params.toString()}`, { scroll: false });
-  }, [
-    filters.materials,
-    filters.categories,
-    filters.minPrice,
-    filters.maxPrice,
-    filters.sort,
-    router,
-  ]);
+  }, [filters, router]);
 
   return (
-    <main className="min-h-screen bg-[#fffaf4] px-4 py-10">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 lg:grid-cols-4">
-        <div className="sticky top-24 space-y-6 rounded-2xl bg-white/70 p-6 shadow backdrop-blur">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Refine</h3>
-            <button
-              type="button"
-              onClick={() =>
-                setFilters({
-                  page: 1,
-                  sort: "latest",
-                  minPrice: "",
-                  maxPrice: "",
-                  materials: [],
-                  categories: [],
-                })
-              }
-              className="text-sm text-red-500 underline"
+    <>
+      {/* 🔥 CATEGORY HERO */}
+      <div className="bg-gradient-to-r from-teal-500 to-emerald-400 py-14 mb-10">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 px-6">
+          {["Earrings", "Pendants", "Rings", "Gifts"].map((item) => (
+            <div
+              key={item}
+              className="bg-white rounded-2xl p-5 text-center shadow hover:shadow-xl transition"
             >
-              Clear
-            </button>
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-medium">Price</p>
-
-            <input
-              type="number"
-              placeholder="Min INR"
-              value={filters.minPrice}
-              className="mb-2 w-full rounded border p-2"
-              onChange={(event) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  minPrice: event.target.value,
-                  page: 1,
-                }))
-              }
-            />
-
-            <input
-              type="number"
-              placeholder="Max INR"
-              value={filters.maxPrice}
-              className="w-full rounded border p-2"
-              onChange={(event) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  maxPrice: event.target.value,
-                  page: 1,
-                }))
-              }
-            />
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-medium">Material</p>
-
-            {["gold", "diamond", "silver"].map((item) => (
-              <label
-                key={item}
-                className="mb-2 flex cursor-pointer items-center gap-3 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={filters.materials.includes(item)}
-                  onChange={() => toggleFilter("materials", item)}
-                  className="accent-black"
-                />
-                <span className="capitalize">{item}</span>
-              </label>
-            ))}
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-medium">Category</p>
-
-            {["ring", "necklace", "bracelet"].map((item) => (
-              <label
-                key={item}
-                className="mb-2 flex cursor-pointer items-center gap-3 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={filters.categories.includes(item)}
-                  onChange={() => toggleFilter("categories", item)}
-                  className="accent-black"
-                />
-                <span className="capitalize">{item}</span>
-              </label>
-            ))}
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-medium">Sort</p>
-
-            <select
-              value={filters.sort}
-              className="w-full rounded border p-2"
-              onChange={(event) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  sort: event.target.value,
-                  page: 1,
-                }))
-              }
-            >
-              <option value="latest">Latest</option>
-              <option value="price_asc">Low to High</option>
-              <option value="price_desc">High to Low</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="lg:col-span-3">
-          <div className="mb-4 flex flex-wrap gap-2">
-            {filters.materials.map((material) => (
-              <span
-                key={material}
-                className="rounded-full bg-black px-3 py-1 text-xs text-white"
-              >
-                {material}
-              </span>
-            ))}
-            {filters.categories.map((category) => (
-              <span
-                key={category}
-                className="rounded-full bg-gray-200 px-3 py-1 text-xs"
-              >
-                {category}
-              </span>
-            ))}
-          </div>
-
-          <p className="mb-4 text-sm text-gray-600">
-            Showing {(filters.page - 1) * 9 + 1}-
-            {Math.min(filters.page * 9, total)} of {total} designs
-          </p>
-
-          {loading && filters.page === 1 ? (
-            <div className="grid grid-cols-3 gap-6">
-              {[...Array(6)].map((_, index) => (
-                <div
-                  key={index}
-                  className="h-64 animate-pulse rounded-2xl bg-gray-200"
-                />
-              ))}
+              <div className="h-32 bg-gray-100 rounded-xl mb-3" />
+              <p className="font-medium">{item}</p>
             </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {products.map((product) => (
-                <Link
-                  href={`/product/${product.id}`}
-                  key={product.id}
-                  className="group overflow-hidden rounded-2xl bg-white/80 shadow backdrop-blur transition hover:-translate-y-2"
-                >
-                  <div className="relative h-64">
-                    <Image
-                      src={product.imageUrl || "/placeholder.jpg"}
-                      alt={product.name}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover transition group-hover:scale-110"
-                    />
-                  </div>
-
-                  <div className="p-4">
-                    <h3 className="text-lg font-serif">{product.name}</h3>
-                    <p className="mt-2 font-semibold text-[#a67c52]">
-                      {formatINR(product.price)}
-                    </p>
-
-                    <div className="mt-3 flex items-center justify-between text-sm text-[#a67c52]">
-                      View <ArrowRight className="size-4" />
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {filters.page * 9 < total ? (
-            <div className="mt-8 text-center">
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() =>
-                  setFilters((prev) => ({ ...prev, page: prev.page + 1 }))
-                }
-                className="rounded-full bg-black px-6 py-3 text-white disabled:opacity-50"
-              >
-                {loading ? "Loading..." : "Load More"}
-              </button>
-            </div>
-          ) : null}
+          ))}
         </div>
       </div>
-    </main>
+
+      <main className="min-h-screen bg-[#fffaf4] px-4 pb-16">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 lg:grid-cols-4">
+          
+          {/* 🔥 FILTER SIDEBAR */}
+          <div className="sticky top-24 space-y-6 rounded-2xl bg-white p-6 shadow">
+            <div className="flex justify-between">
+              <h3 className="font-semibold">Filters</h3>
+              <button
+                onClick={() =>
+                  setFilters({
+                    page: 1,
+                    sort: "latest",
+                    minPrice: "",
+                    maxPrice: "",
+                    materials: [],
+                    categories: [],
+                  })
+                }
+                className="text-sm text-red-500"
+              >
+                Clear
+              </button>
+            </div>
+
+            {/* PRICE */}
+            <div>
+              <p className="text-sm mb-2">Price</p>
+              <input
+                placeholder="Min"
+                className="w-full border rounded p-2 mb-2"
+                value={filters.minPrice}
+                onChange={(e) =>
+                  setFilters({ ...filters, minPrice: e.target.value, page: 1 })
+                }
+                onBlur={() => setHasMore(true)}
+              />
+              <input
+                placeholder="Max"
+                className="w-full border rounded p-2"
+                value={filters.maxPrice}
+                onChange={(e) =>
+                  setFilters({ ...filters, maxPrice: e.target.value, page: 1 })
+                }
+                onBlur={() => setHasMore(true)}
+              />
+            </div>
+
+            {/* MATERIAL */}
+            <div>
+              <p className="text-sm mb-2">Material</p>
+              {["gold", "diamond", "silver"].map((item) => (
+                <label key={item} className="flex gap-2 text-sm mb-2">
+                  <input
+                    type="checkbox"
+                    checked={filters.materials.includes(item)}
+                    onChange={() => toggleFilter("materials", item)}
+                  />
+                  {item}
+                </label>
+              ))}
+            </div>
+
+            {/* CATEGORY */}
+            <div>
+              <p className="text-sm mb-2">Category</p>
+              {["ring", "necklace", "bracelet"].map((item) => (
+                <label key={item} className="flex gap-2 text-sm mb-2">
+                  <input
+                    type="checkbox"
+                    checked={filters.categories.includes(item)}
+                    onChange={() => toggleFilter("categories", item)}
+                  />
+                  {item}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* 🔥 PRODUCT AREA */}
+          <div className="lg:col-span-3">
+
+            {/* TOP BAR */}
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold capitalize">
+                {page.slug}
+              </h2>
+
+              <select
+                value={filters.sort}
+                onChange={(e) => {
+                  setFilters({ ...filters, sort: e.target.value, page: 1 });
+                  setHasMore(true);
+                }}
+                className="border rounded-full px-4 py-2 text-sm"
+              >
+                <option value="latest">Latest</option>
+                <option value="price_asc">Price Low → High</option>
+                <option value="price_desc">Price High → Low</option>
+              </select>
+            </div>
+
+            {/* FILTER PILLS */}
+            <div className="mb-6 flex flex-wrap gap-3">
+              {filters.materials.map((item) => (
+                <span key={item} className="px-4 py-1 border rounded-full text-sm">
+                  {item}
+                </span>
+              ))}
+              {filters.categories.map((item) => (
+                <span key={item} className="px-4 py-1 border rounded-full text-sm">
+                  {item}
+                </span>
+              ))}
+            </div>
+
+            {/* GRID */}
+            {loading && filters.page === 1 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-64 bg-gray-200 animate-pulse rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                <AnimatePresence>
+                  {products.map((product, index) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300"
+                    >
+                      <Link href={`/product/${product.slug}`} className="block">
+                        {/* ❤️ Wishlist */}
+                        <button className="absolute top-3 right-3 z-10 bg-white p-2 rounded-full shadow hover:shadow-md transition-shadow">
+                          <Heart className="size-4" />
+                        </button>
+
+                        {/* 🔥 FOMO ELEMENTS */}
+                        {/* Low Stock Alert */}
+                        {Math.random() > 0.7 && (
+                          <div className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                            Only {Math.floor(Math.random() * 5) + 1} left!
+                          </div>
+                        )}
+
+                        {/* Live Viewers */}
+                        {Math.random() > 0.8 && (
+                          <div className="absolute top-12 left-3 z-10 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                            <Users className="size-3" />
+                            {Math.floor(Math.random() * 20) + 5} viewing
+                          </div>
+                        )}
+
+                        {/* IMAGE */}
+                        <div className="relative h-64 bg-[#f8f8f8] rounded-t-2xl overflow-hidden">
+                          <Image
+                            src={product.imageUrl || "/placeholder.jpg"}
+                            alt={product.name}
+                            fill
+                            className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                          />
+                          {/* Shimmer effect */}
+                          <motion.div
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                            initial={{ x: "-100%" }}
+                            whileHover={{ x: "100%" }}
+                            transition={{ duration: 0.6, ease: "easeInOut" }}
+                          />
+                        </div>
+
+                        {/* INFO */}
+                        <div className="p-4">
+                          <h3 className="font-medium text-gray-900 group-hover:text-[#8b6f47] transition-colors">
+                            {product.name}
+                          </h3>
+                          <p className="text-[#a67c52] font-semibold mt-2 text-lg">
+                            {formatINR(product.price)}
+                          </p>
+
+                          <div className="flex justify-between mt-3 text-sm text-[#a67c52]">
+                            <span className="flex items-center gap-1">
+                              <Clock className="size-3" />
+                              Limited time
+                            </span>
+                            <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* INFINITE SCROLL TRIGGER */}
+            {hasMore && (
+              <div ref={observerRef} className="flex justify-center py-8">
+                {loading ? (
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-[#8b6f47] rounded-full animate-spin"></div>
+                    Loading more...
+                  </div>
+                ) : (
+                  <div className="h-4"></div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* VARIABLE REWARD POPUP */}
+      <VariableRewardPopup
+        isVisible={showPopup}
+        onClose={closePopup}
+        discount={currentDiscount}
+      />
+    </>
   );
 }

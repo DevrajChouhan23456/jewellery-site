@@ -26,17 +26,10 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[AUTH] Credentials received:', { username: credentials?.username });
-        }
-
         const username = credentials?.username?.trim();
         const password = credentials?.password ?? "";
 
         if (!username || !password) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[AUTH] Missing credentials');
-          }
           return null;
         }
 
@@ -45,19 +38,11 @@ export const authOptions: NextAuthOptions = {
             where: { username },
           });
 
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[AUTH] Admin found:', !!admin, admin?.username);
-          }
-
           if (!admin) {
             return null;
           }
 
           const passwordValid = verifyPassword(password, admin.passwordHash);
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[AUTH] Password valid:', passwordValid);
-          }
 
           if (!passwordValid) {
             return null;
@@ -71,7 +56,7 @@ export const authOptions: NextAuthOptions = {
           };
 
           if (process.env.NODE_ENV === 'development') {
-            console.log('[AUTH] Login successful:', user.username);
+            console.log('[AUTH] Login successful');
           }
 
           return user;

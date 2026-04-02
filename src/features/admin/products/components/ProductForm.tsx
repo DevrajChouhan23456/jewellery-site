@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useState, useTransition } from "react";
+import { startTransition, useState, useTransition, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -30,6 +30,7 @@ type ProductFormValues = {
   material: string;
   name: string;
   price: string;
+  size: string;
   slug: string;
   subCategory: string;
   type: string;
@@ -41,6 +42,7 @@ const emptyProductFormValues: ProductFormValues = {
   material: "gold",
   name: "",
   price: "",
+  size: "",
   slug: "",
   subCategory: "",
   type: "ring",
@@ -57,6 +59,7 @@ function toFormValues(product?: ProductFormInitialData): ProductFormValues {
     material: product.material,
     name: product.name,
     price: String(product.price),
+    size: product.size ?? "",
     slug: product.slug,
     subCategory: product.subCategory ?? "",
     type: product.type,
@@ -86,6 +89,80 @@ export default function ProductForm({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isNavigating, startNavigation] = useTransition();
   const [slugEdited, setSlugEdited] = useState(Boolean(initialProduct?.slug));
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    if (isEditMode) return; // Only auto-save for new products
+
+    const interval = setInterval(() => {
+      if (values.name && values.category && values.material && values.type) {
+        handleAutoSave();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [values]);
+
+  const handleAutoSave = useCallback(async () => {
+    if (isAutoSaving || !values.name.trim()) return;
+
+    setIsAutoSaving(true);
+    try {
+      const payload = {
+        name: values.name,
+        slug: values.slug,
+        price: values.price,
+        category: values.category,
+        subCategory: values.subCategory,
+        material: values.material,
+        type: values.type,
+        size: values.size,
+        images: values.images,
+      };
+
+      const parsed = createProductSchema.safeParse(payload);
+      if (!parsed.success) return; // Don't save invalid drafts
+
+      // For drafts, we'll use localStorage for now
+      const draftKey = 'product-draft';
+      localStorage.setItem(draftKey, JSON.stringify({
+        ...parsed.data,
+        savedAt: new Date().toISOString(),
+      }));
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    } finally {
+      setIsAutoSaving(false);
+    }
+  }, [values, isAutoSaving]);
+
+  // Load draft on mount for new products
+  useEffect(() => {
+    if (isEditMode) return;
+
+    const draftKey = 'product-draft';
+    const draft = localStorage.getItem(draftKey);
+    if (draft) {
+      try {
+        const parsedDraft = JSON.parse(draft);
+        const savedAt = new Date(parsedDraft.savedAt);
+        const hoursSinceSave = (Date.now() - savedAt.getTime()) / (1000 * 60 * 60);
+
+        if (hoursSinceSave < 24) { // Only load drafts less than 24 hours old
+          setValues(toFormValues(parsedDraft));
+          setLastSaved(savedAt);
+          toast.success('Draft loaded from previous session');
+        } else {
+          localStorage.removeItem(draftKey);
+        }
+      } catch (error) {
+        localStorage.removeItem(draftKey);
+      }
+    }
+  }, [isEditMode]);
 
   const isEditMode = Boolean(initialProduct?.id);
 
@@ -198,6 +275,7 @@ export default function ProductForm({
       subCategory: values.subCategory,
       material: values.material,
       type: values.type,
+      size: values.size,
       images: values.images,
       ...(initialProduct?.id ? { id: initialProduct.id } : {}),
     };
@@ -410,6 +488,19 @@ export default function ProductForm({
             className="h-11 rounded-xl border-stone-200 bg-white px-4"
           />
         </FormField>
+
+        <FormField
+          label="Size"
+          description="Optional size variant (e.g., small, medium, large)."
+          error={fieldErrors.size}
+        >
+          <Input
+            value={values.size}
+            onChange={(event) => setValue("size", event.target.value)}
+            placeholder="medium"
+            className="h-11 rounded-xl border-stone-200 bg-white px-4"
+          />
+        </FormField>
       </FormCard>
 
       <FormCard
@@ -473,6 +564,21 @@ export default function ProductForm({
         title="Submission"
         description="The server revalidates admin and storefront paths after successful mutations."
       >
+        {!isEditMode && (
+          <div className="flex items-center justify-between text-sm text-stone-600">
+            <span>
+              {isAutoSaving ? 'Auto-saving...' : lastSaved ? `Draft saved ${lastSaved.toLocaleTimeString()}` : 'Unsaved draft'}
+            </span>
+            <button
+              type="button"
+              onClick={handleAutoSave}
+              className="text-stone-500 hover:text-stone-700 underline"
+            >
+              Save now
+            </button>
+          </div>
+        )}
+
         {submitError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {submitError}
@@ -490,6 +596,7 @@ export default function ProductForm({
               `Slug: ${toProductSlug(values.slug || values.name) || "Not set"}`,
               `Category: ${values.category || "Not set"}`,
               `Material: ${values.material || "Not set"}`,
+              `Size: ${values.size || "Not set"}`,
               `Images: ${values.images.filter((image) => image.trim()).length}`,
             ].join("\n")}
             className="min-h-28 rounded-2xl border-stone-200 bg-stone-50"

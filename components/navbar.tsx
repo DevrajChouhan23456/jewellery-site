@@ -67,7 +67,7 @@ const Navbar = ({ onLoginClick }: NavbarProps) => {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
+    <header className="sticky top-0 z-50 border-b border-white/20 bg-white/90 backdrop-blur-md shadow-sm">
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <div className="flex h-[72px] items-center justify-between gap-6">
           <LogoSection logoUrl={logoUrl} />

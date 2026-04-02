@@ -7,6 +7,7 @@ import { fetchServerCart, mapApiCartToStoreItems } from "@/lib/cart-client";
 import { readCartFromStorage } from "@/lib/cart-storage";
 import { mergeCartAfterLogin } from "@/lib/mergeCart";
 import { useCartStore } from "@/lib/store";
+import SmoothScroll from "@/components/smooth-scroll";
 
 function CartInitializer() {
   const { status } = useSession();
@@ -51,6 +52,7 @@ export default function Providers({
 }) {
   return (
     <SessionProvider>
+      <SmoothScroll />
       <CartInitializer />
       {children}
     </SessionProvider>

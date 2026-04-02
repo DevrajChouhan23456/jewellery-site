@@ -12,6 +12,7 @@ export type ProductFormInitialData = {
   subCategory: string | null;
   material: string;
   type: string;
+  size: string | null;
   images: string[];
 };
 
@@ -88,10 +89,9 @@ export async function deleteAdminProductRequest(productId: string) {
   });
 }
 
-export function getProductApiFieldErrors(error: unknown) {
-  if (!error || typeof error !== "object" || !("fieldErrors" in error)) {
-    return undefined;
-  }
-
-  return (error as { fieldErrors?: ProductFieldErrors }).fieldErrors;
+export async function createAdminProductsBulkRequest(products: CreateProductInput[]) {
+  return postJson<{ products: ProductFormInitialData[]; created: number; skipped: number }>(
+    "/api/admin/product/bulk-create",
+    products,
+  );
 }

@@ -18,7 +18,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
             key={img}
             type="button"
             onClick={() => setActive(img)}
-            className="overflow-hidden rounded"
+            className="overflow-hidden rounded transition-transform duration-300 ease-in-out hover:scale-105"
           >
             <Image
               src={img}
@@ -26,18 +26,22 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
               width={64}
               height={64}
               className="h-16 w-16 object-cover"
+              loading="lazy"
             />
           </button>
         ))}
       </div>
 
-      <div className="relative">
+      <div className="relative h-[500px] w-[500px] overflow-hidden rounded-2xl bg-[#fff8ef] shadow-inner">
         <Image
+          key={active}
           src={active}
           alt="Selected product image"
           width={500}
           height={500}
-          className="rounded-2xl transition hover:scale-105"
+          loading="lazy"
+          className="h-full w-full object-cover transition duration-450 ease-in-out transform hover:scale-105"
+          style={{ opacity: 1, transition: "opacity 0.4s ease" }}
         />
       </div>
     </div>

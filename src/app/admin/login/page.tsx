@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
-import { MagicCardDemo } from "@/src/app/user/login/loginCard";
+import { AdminLoginCard } from "@/components/admin/AdminLoginCard";
 
 export default async function AdminLoginPage() {
   const session = await auth();
@@ -68,7 +68,7 @@ export default async function AdminLoginPage() {
         </div>
 
         <div className="flex justify-center lg:justify-end">
-          <MagicCardDemo />
+          <AdminLoginCard />
         </div>
       </div>
     </main>

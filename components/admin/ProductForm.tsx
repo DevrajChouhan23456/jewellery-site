@@ -2,7 +2,7 @@
 
 import { startTransition, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { LoaderCircle, Plus, Sparkles, TrendingUp, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { FormCard, FormField, FormGroup } from "@/components/admin/FormComponents";
@@ -26,6 +26,7 @@ export type ProductFormInitialData = {
   material: string;
   type: string;
   images: string[];
+  description?: string;
 };
 
 type ProductFormValues = {
@@ -37,6 +38,7 @@ type ProductFormValues = {
   slug: string;
   subCategory: string;
   type: string;
+  description: string;
 };
 
 type ProductApiResponse = {
@@ -54,6 +56,7 @@ const emptyProductFormValues: ProductFormValues = {
   slug: "",
   subCategory: "",
   type: "ring",
+  description: "",
 };
 
 function toFormValues(product?: ProductFormInitialData): ProductFormValues {
@@ -70,6 +73,7 @@ function toFormValues(product?: ProductFormInitialData): ProductFormValues {
     slug: product.slug,
     subCategory: product.subCategory ?? "",
     type: product.type,
+    description: product.description ?? "",
   };
 }
 
@@ -96,6 +100,16 @@ export default function ProductForm({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isNavigating, startNavigation] = useTransition();
   const [slugEdited, setSlugEdited] = useState(Boolean(initialProduct?.slug));
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [pricingSuggestion, setPricingSuggestion] = useState<{
+    suggestedPrice: number | null;
+    averagePrice: number;
+    minPrice: number;
+    maxPrice: number;
+    totalSales: number;
+    confidence: string;
+  } | null>(null);
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false);
 
   const isEditMode = Boolean(initialProduct?.id);
 
@@ -162,6 +176,83 @@ export default function ProductForm({
     }
   }
 
+  async function handleGenerateDescription() {
+    if (!values.name || !values.material || !values.type) {
+      toast.error("Please fill in name, material, and type first.");
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch("/api/admin/product/generate-description", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: values.name,
+          material: values.material,
+          type: values.type,
+          category: values.category,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate description.");
+      }
+
+      const result = await response.json();
+      setValue("description", result.description);
+      toast.success("Description generated successfully!");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Generation failed.";
+      setSubmitError(message);
+      toast.error(message);
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  }
+
+  async function handleGetPricingSuggestion() {
+    if (!values.category || !values.material) {
+      toast.error("Please fill in category and material first.");
+      return;
+    }
+
+    setIsLoadingPricing(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch("/api/admin/product/pricing-suggestion", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productId: initialProduct?.id,
+          category: values.category,
+          material: values.material,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get pricing suggestion.");
+      }
+
+      const result = await response.json();
+      setPricingSuggestion(result);
+      toast.success("Pricing suggestion loaded!");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to get pricing suggestion.";
+      setSubmitError(message);
+      toast.error(message);
+    } finally {
+      setIsLoadingPricing(false);
+    }
+  }
+
   async function handleDelete() {
     if (!initialProduct?.id) {
       return;
@@ -220,6 +311,7 @@ export default function ProductForm({
       material: values.material,
       type: values.type,
       images: values.images,
+      description: values.description,
       ...(initialProduct?.id ? { id: initialProduct.id } : {}),
     };
     const schema = initialProduct?.id ? updateProductSchema : createProductSchema;
@@ -351,28 +443,71 @@ export default function ProductForm({
             description="Whole-number selling price in Indian rupees."
             error={fieldErrors.price}
           >
-            <Input
-              type="number"
-              min={0}
-              step={1}
-              value={values.price}
-              onChange={(event) => setValue("price", event.target.value)}
-              placeholder="24999"
-              className="h-11 rounded-xl border-stone-200 bg-white px-4"
-            />
+            <div className="space-y-3">
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={values.price}
+                onChange={(event) => setValue("price", event.target.value)}
+                placeholder="24999"
+                className="h-11 rounded-xl border-stone-200 bg-white px-4"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full"
+                onClick={handleGetPricingSuggestion}
+                disabled={isLoadingPricing || !values.category || !values.material}
+              >
+                {isLoadingPricing ? (
+                  <>
+                    <LoaderCircle className="size-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="size-4" />
+                    Get Price Suggestion
+                  </>
+                )}
+              </Button>
+              {pricingSuggestion && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+                  <div className="font-medium text-blue-900">Pricing Analysis</div>
+                  <div className="mt-1 space-y-1 text-blue-800">
+                    {pricingSuggestion.suggestedPrice && (
+                      <div>Suggested: ₹{pricingSuggestion.suggestedPrice.toLocaleString()}</div>
+                    )}
+                    <div>Average: ₹{pricingSuggestion.averagePrice.toLocaleString()}</div>
+                    <div>Range: ₹{pricingSuggestion.minPrice.toLocaleString()} - ₹{pricingSuggestion.maxPrice.toLocaleString()}</div>
+                    <div>Sales: {pricingSuggestion.totalSales} units</div>
+                    <div>Confidence: {pricingSuggestion.confidence}</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </FormField>
 
-          <FormField
+<FormField
             label="Category"
             description="Primary storefront grouping and shop-page slug."
             error={fieldErrors.category}
           >
-            <Input
+            <select
               value={values.category}
               onChange={(event) => setValue("category", event.target.value)}
-              placeholder="jewellery"
-              className="h-11 rounded-xl border-stone-200 bg-white px-4"
-            />
+              className="h-11 rounded-xl border-stone-200 bg-white px-4 w-full"
+            >
+              <option value="jewellery">Jewellery</option>
+              <option value="gold">Gold</option>
+              <option value="diamond">Diamond</option>
+              <option value="earrings">Earrings</option>
+              <option value="rings">Rings</option>
+              <option value="gifting">Gifting</option>
+              <option value="glamdays">Daily Wear</option>
+              <option value="thejoydressing">Collections</option>
+            </select>
           </FormField>
         </FormGroup>
 
@@ -390,31 +525,77 @@ export default function ProductForm({
             />
           </FormField>
 
-          <FormField
+<FormField
             label="Material"
             description="Normalized material label used in filters."
             error={fieldErrors.material}
           >
-            <Input
+            <select
               value={values.material}
               onChange={(event) => setValue("material", event.target.value)}
-              placeholder="gold"
-              className="h-11 rounded-xl border-stone-200 bg-white px-4"
-            />
+              className="h-11 rounded-xl border-stone-200 bg-white px-4 w-full"
+            >
+              <option value="gold">Gold</option>
+              <option value="diamond">Diamond</option>
+              <option value="silver">Silver</option>
+            </select>
           </FormField>
         </FormGroup>
 
-        <FormField
+<FormField
           label="Type"
           description="Specific product type used in search and taxonomy."
           error={fieldErrors.type}
         >
-          <Input
+          <select
             value={values.type}
             onChange={(event) => setValue("type", event.target.value)}
-            placeholder="ring"
-            className="h-11 rounded-xl border-stone-200 bg-white px-4"
-          />
+            className="h-11 rounded-xl border-stone-200 bg-white px-4 w-full"
+          >
+            <option value="ring">Ring</option>
+            <option value="earring">Earring</option>
+            <option value="pendant">Pendant</option>
+            <option value="necklace">Necklace</option>
+            <option value="bangle">Bangle</option>
+            <option value="chain">Chain</option>
+            <option value="bracelet">Bracelet</option>
+            <option value="mangalsutra">Mangalsutra</option>
+          </select>
+        </FormField>
+
+        <FormField
+          label="Description"
+          description="Product description for storefront display."
+          error={fieldErrors.description}
+        >
+          <div className="space-y-3">
+            <Textarea
+              value={values.description}
+              onChange={(event) => setValue("description", event.target.value)}
+              placeholder="Describe the product features, materials, and appeal..."
+              className="min-h-24 rounded-xl border-stone-200 bg-white px-4 py-3"
+              rows={4}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-full"
+              onClick={handleGenerateDescription}
+              disabled={isGeneratingDescription || !values.name || !values.material || !values.type}
+            >
+              {isGeneratingDescription ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-4" />
+                  Generate with AI
+                </>
+              )}
+            </Button>
+          </div>
         </FormField>
       </FormCard>
 
@@ -496,6 +677,7 @@ export default function ProductForm({
               `Slug: ${toProductSlug(values.slug || values.name) || "Not set"}`,
               `Category: ${values.category || "Not set"}`,
               `Material: ${values.material || "Not set"}`,
+              `Description: ${values.description ? "Set" : "Not set"}`,
               `Images: ${values.images.filter((image) => image.trim()).length}`,
             ].join("\n")}
             className="min-h-28 rounded-2xl border-stone-200 bg-stone-50"

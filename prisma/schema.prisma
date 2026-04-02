@@ -94,6 +94,7 @@ model ShopPageFeature {
 
 model ShopPageProduct {
   id             String      @id @default(auto()) @map("_id") @db.ObjectId
+  slug           String      @unique
   shopPageId     String      @db.ObjectId
   name           String
   price          Int
@@ -111,57 +112,49 @@ model ShopPageProduct {
   orderItems     OrderItem[]
 }
 
-model Customer {
+model User {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
+  email     String?  @unique
   name      String?
-  phone     String?
+  phone     String?  @unique
+  address   String?
+  city      String?
+  state     String?
+  pincode   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  carts  Cart[]
-  orders Order[]
-}
-
-model Cart {
-  id         String     @id @default(auto()) @map("_id") @db.ObjectId
-  customerId String?    @db.ObjectId
-  sessionId  String?    @unique
-  status     CartStatus @default(ACTIVE)
-  expiresAt  DateTime?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-
-  customer Customer?  @relation(fields: [customerId], references: [id])
-  items    CartItem[]
+  carts    Cart[]
   orders   Order[]
+  wishlist Wishlist[]
+  recoveries CartRecovery[]
+  recommendations Recommendation[]
 
-  @@index([customerId])
+  @@index([email])
+  @@index([createdAt])
 }
 
 model CartItem {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  userId    String @db.ObjectId
+  cartId    String @db.ObjectId
   productId String @db.ObjectId
 
   quantity Int @default(1)
 
-  user    User    @relation(fields: [userId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  cart    Cart            @relation(fields: [cartId], references: [id])
+  product Product         @relation(fields: [productId], references: [id])
 
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   ShopPageProduct   ShopPageProduct? @relation(fields: [shopPageProductId], references: [id])
   shopPageProductId String?          @db.ObjectId
-  Cart              Cart?            @relation(fields: [cartId], references: [id])
-  cartId            String?          @db.ObjectId
 }
 
 model Order {
   id                String        @id @default(auto()) @map("_id") @db.ObjectId
   orderNumber       String        @unique @default(cuid())
-  customerId        String?       @db.ObjectId
+  userId            String?       @db.ObjectId
   cartId            String?       @db.ObjectId
   status            OrderStatus   @default(PENDING)
   paymentStatus     PaymentStatus @default(PENDING)
@@ -180,11 +173,15 @@ model Order {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  customer Customer?   @relation(fields: [customerId], references: [id])
-  cart     Cart?       @relation(fields: [cartId], references: [id])
-  items    OrderItem[]
+  user User?   @relation(fields: [userId], references: [id])
+  cart Cart?   @relation(fields: [cartId], references: [id])
+  items OrderItem[]
 
-  @@index([customerId])
+  @@index([userId])
+  @@index([paymentStatus])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 model OrderItem {
@@ -233,24 +230,49 @@ model Product {
   category    String
   subCategory String? // 👈 ADD THIS
   price       Int
+  description String?   // AI-generated product description
   images      String[]
   material    String
   type        String
+  size        String?    // 👈 ADD THIS for variant system
+  stock       Int        @default(0) // Inventory count
+  lowStockThreshold Int @default(10) // Alert when stock below this
+  embeddings  Float[]  // OpenAI text-embedding-3-small embeddings
   cartItems   CartItem[]
   wishlist    Wishlist[]
+  priceHistory PriceHistory[]
+  recommendations Recommendation[]
   createdAt   DateTime   @default(now())
+
+  @@index([name])
+  @@index([category])
+  @@index([material])
+  @@index([type])
+  @@index([size]) // 👈 ADD THIS
+  @@index([price])
+  @@index([createdAt])
+  @@index([name, category])
+  @@index([embeddings])
 }
 
-model User {
-  id    String  @id @default(auto()) @map("_id") @db.ObjectId
-  phone String  @unique
-  email String? @unique
-  name  String?
+model Cart {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?    @db.ObjectId
+  sessionId String?    @unique
+  status    CartStatus @default(ACTIVE)
+  expiresAt DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
-  cartItems CartItem[]
-  wishlist  Wishlist[]
+  user  User?   @relation(fields: [userId], references: [id])
+  items CartItem[]
+  orders Order[]
+  recoveries CartRecovery[]
 
-  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([userId, status])
 }
 
 model OTP {
@@ -271,4 +293,105 @@ model Wishlist {
   product Product @relation(fields: [productId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+// Automation Models
+model AutomationSettings {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  key                   String   @unique
+  value                 Json
+  description           String?
+  isEnabled             Boolean  @default(true)
+  lastExecutedAt        DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Alert {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  type        AlertType
+  title       String
+  message     String
+  priority    AlertPriority @default(MEDIUM)
+  isRead      Boolean    @default(false)
+  metadata    Json?
+  resolvedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model CartRecovery {
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  cartId        String           @db.ObjectId
+  userId        String?          @db.ObjectId
+  email         String
+  recoveryToken String           @unique
+  status        RecoveryStatus   @default(PENDING)
+  sentAt        DateTime?
+  clickedAt     DateTime?
+  convertedAt   DateTime?
+  expiresAt     DateTime
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  cart Cart? @relation(fields: [cartId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model PriceHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId String   @db.ObjectId
+  oldPrice  Int
+  newPrice  Int
+  reason    String   // e.g., "dynamic_pricing", "manual", "promotion"
+  metadata  Json?    // additional context like demand score, competitor prices
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Recommendation {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String?  @db.ObjectId
+  sessionId       String?
+  productId       String   @db.ObjectId
+  recommendedFor  String   @db.ObjectId // product or user this is recommended for
+  score           Float
+  algorithm       String   // e.g., "collaborative", "content_based", "trending"
+  context         String?  // e.g., "viewed_together", "similar_category"
+  isClicked       Boolean  @default(false)
+  isPurchased     Boolean  @default(false)
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id])
+  product Product  @relation(fields: [productId], references: [id])
+}
+
+enum AlertType {
+  INVENTORY_LOW
+  SALES_DROP
+  PRICE_CHANGE
+  CART_ABANDONED
+  ORDER_ISSUE
+  SYSTEM_ERROR
+}
+
+enum AlertPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RecoveryStatus {
+  PENDING
+  SENT
+  CLICKED
+  CONVERTED
+  EXPIRED
 }

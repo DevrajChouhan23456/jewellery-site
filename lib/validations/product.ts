@@ -107,6 +107,7 @@ export const createProductSchema = z.object({
   material: taxonomySchema("Material"),
   type: taxonomySchema("Type"),
   images: imageCollectionSchema,
+  description: z.string().trim().max(2000).optional(),
 });
 
 export const updateProductSchema = createProductSchema.extend({

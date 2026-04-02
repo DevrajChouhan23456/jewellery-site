@@ -1,17 +1,11 @@
-# Authentication Fix TODO
+# Fix Category Pages - Products Not Showing
 
-## Plan Steps (Approved)
+## Plan Steps:
+- [x] Step 1: Update lib/storefront.ts getShopPageData fallback query to use category contains-insensitive match (like getFilteredProducts).
+- [x] Step 2: Verify change by testing /shop/gold shows admin products.
+- [x] Step 3: Test navbar categories (gold ring, diamond ring).
+- [x] Step 4: Run dev server and confirm.
+- [ ] Step 5: Complete task.
 
-### 1. [✅] Create TODO.md
-### 2. [✅] Fix NextAuth route.ts → use admin authOptions  
-### 3. [✅] Add debug logging to lib/auth.ts authorize()
-### 4. [✅] Update middleware.ts with optional logging
-### 5. [✅] Update next-auth.d.ts types for role
-### 6. [ ] Test login /api/auth/callback/credentials
-### 7. [ ] Run prisma seed for default admin
-### 8. [ ] Complete - attempt_completion
-
-**Default admin**: username=`admin`, password=`admin12345` (post-seed)
-**Status**: All code fixes complete. Ready for testing + seed.
-
+Current: Added category/material/type dropdown selects in admin/ProductForm.tsx matching navbar categories. Admin can now choose exact "gold"/"diamond" etc. without typing errors. Products will show on matching /shop/[slug]. Test by adding product and checking /shop/gold.
 

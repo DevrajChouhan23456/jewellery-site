@@ -1,4 +1,6 @@
 import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
+import eventBus from "@/lib/event-bus";
 import {
   getPublicKey,
   getRazorpayClient,
@@ -10,6 +12,7 @@ import {
   parseCheckoutOrderMetadata,
 } from "@/server/orders/utils";
 import { getCheckoutCartSnapshot } from "@/server/services/checkout";
+import { posthogEvents } from "@/lib/posthog-analytics";
 
 type PaymentServiceResult<T> =
   | {
@@ -53,7 +56,6 @@ async function userOwnsOrder(userId: string, order: OrderAccessRecord) {
   const cartItem = await prisma.cartItem.findFirst({
     where: {
       cartId: order.cartId,
-      userId,
     },
     select: {
       id: true,
@@ -76,6 +78,14 @@ export async function createRazorpayPaymentOrder(input: {
             productId: true,
             quantity: true,
             unitPrice: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                images: true,
+                price: true,
+              },
+            },
           },
         },
       },
@@ -191,6 +201,9 @@ export async function createRazorpayPaymentOrder(input: {
       },
     });
 
+    // Track payment initiation
+    posthogEvents.trackPaymentInitiated(order.id, totals.totalAmount / 100, 'razorpay');
+
     return {
       data: {
         amount: Number(razorpayOrder.amount),
@@ -219,6 +232,19 @@ export async function verifyRazorpayPayment(input: {
   userId: string;
 }): Promise<PaymentServiceResult<RazorpayVerificationPayload>> {
   try {
+    const idempotencyKey = `payment:verify:${input.orderId}:${input.razorpayPaymentId}`;
+    const existing = await redis.get(idempotencyKey);
+
+    if (existing) {
+      return {
+        data: {
+          message: "Payment already processed.",
+          orderId: input.orderId,
+        },
+        status: 200,
+      };
+    }
+
     const order = await prisma.order.findUnique({
       where: { id: input.orderId },
       select: {
@@ -269,7 +295,7 @@ export async function verifyRazorpayPayment(input: {
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.order.update({
+      const updatedOrder = await tx.order.update({
         where: { id: order.id },
         data: {
           paymentStatus: "PAID",
@@ -277,16 +303,77 @@ export async function verifyRazorpayPayment(input: {
           razorpaySignature: input.razorpaySignature,
           status: order.status === "PENDING" ? "CONFIRMED" : order.status,
         },
+        include: {
+          user: {
+            select: { email: true, phone: true, name: true }
+          },
+          items: {
+            include: {
+              product: {
+                select: { name: true, price: true }
+              }
+            }
+          }
+        }
       });
+
+      // Persist idempotency record for this successful payment
+      await redis.setex(idempotencyKey, 24 * 60 * 60, "1");
 
       if (order.cartId) {
         await tx.cartItem.deleteMany({
           where: {
             cartId: order.cartId,
-            userId: input.userId,
           },
         });
+
+        // Mark cart as checked out
+        await tx.cart.update({
+          where: { id: order.cartId },
+          data: { status: "CHECKED_OUT" }
+        });
       }
+
+      // Emit event and send notifications asynchronously (don't block payment verification)
+      eventBus.emit("order.paid", {
+        orderId: updatedOrder.id,
+        userId: input.userId,
+        paymentMethod: "razorpay",
+      });
+
+      setImmediate(async () => {
+        try {
+          // Send email confirmation
+          if (updatedOrder.user?.email) {
+            await sendOrderConfirmationEmail(updatedOrder.user.email, {
+              orderNumber: updatedOrder.orderNumber,
+              totalAmount: updatedOrder.totalAmount,
+              status: updatedOrder.status,
+              items: updatedOrder.items
+            });
+          }
+
+          // Send WhatsApp confirmation
+          if (updatedOrder.user?.phone) {
+            await sendOrderConfirmationWhatsApp(updatedOrder.user.phone, {
+              orderNumber: updatedOrder.orderNumber,
+              totalAmount: updatedOrder.totalAmount,
+              status: updatedOrder.status
+            });
+          }
+
+          // Track successful payment in PostHog
+          posthogEvents.trackPaymentSuccess(updatedOrder.id, updatedOrder.totalAmount / 100, 'razorpay');
+          posthogEvents.trackCheckout(updatedOrder.id, updatedOrder.totalAmount / 100, updatedOrder.items.length, 'razorpay');
+          posthogEvents.trackOrderStatusChange(updatedOrder.id, updatedOrder.status);
+
+        } catch (error) {
+          console.error("Failed to send order notifications:", error);
+          // Don't fail the payment verification if notifications fail
+        }
+      });
+
+      return updatedOrder;
     });
 
     return {

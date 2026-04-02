@@ -42,7 +42,7 @@ const customerProviders: NonNullable<NextAuthOptions["providers"]> = [
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
+        phone: user.phone ?? undefined,
       };
     },
   }),
@@ -82,7 +82,7 @@ export const customerAuthOptions: NextAuthOptions = {
       });
 
       user.id = dbUser.id;
-      user.phone = dbUser.phone;
+      user.phone = dbUser.phone ?? undefined;
       return true;
     },
     async jwt({ token, user }) {

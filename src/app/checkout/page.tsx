@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { useSession } from "next-auth/react";
 import { useSyncExternalStore } from "react";
@@ -160,6 +161,7 @@ function CartPageSkeleton() {
 }
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const sessionPhone = getSessionPhone(session);
   const items = useCartStore((state) => state.items);
@@ -325,6 +327,9 @@ export default function CheckoutPage() {
       });
       clearCart();
       toast.success("Payment successful.");
+
+      // Redirect to success page
+      router.push(`/order-success?order=${checkoutResponse.order.orderNumber}&amount=${checkoutResponse.order.totalAmount}`);
     } catch (error) {
       const message =
         error instanceof Error
@@ -589,6 +594,45 @@ export default function CheckoutPage() {
                   Your payable amount is recalculated on the server before payment
                   begins.
                 </p>
+              </div>
+
+              {/* Trust Badges */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="flex items-center gap-3 rounded-xl border border-[#e6d3bf] bg-white p-3 dark:border-white/10 dark:bg-neutral-900/50">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
+                    <ShieldCheck className="size-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold">100% Secure Payment</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-300">
+                      SSL encrypted
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl border border-[#e6d3bf] bg-white p-3 dark:border-white/10 dark:bg-neutral-900/50">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
+                    <BadgeCheck className="size-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold">Certified Jewellery</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-300">
+                      BIS Hallmarked
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl border border-[#e6d3bf] bg-white p-3 dark:border-white/10 dark:bg-neutral-900/50">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
+                    <Truck className="size-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold">Insured Shipping</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-300">
+                      Full coverage
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
 

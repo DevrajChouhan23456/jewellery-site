@@ -1,1 +1,1 @@
-export { default } from "@/src/app/admin/dashboard/storefront/page";
+export { default } from "@/app/admin/dashboard/storefront/page";

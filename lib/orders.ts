@@ -11,7 +11,6 @@ export type OrderSnapshotItem = {
 const checkoutOrderMetadataSchema = z.object({
   cartFingerprint: z.string().trim().min(1).optional(),
   customerEmail: z.string().trim().email().optional(),
-  customerUserId: objectIdSchema.optional(),
   notes: z.string().trim().max(500).optional(),
 });
 
@@ -65,7 +64,6 @@ export function buildCheckoutOrderMetadata(input: CheckoutOrderMetadata) {
   const metadata = {
     ...(input.cartFingerprint ? { cartFingerprint: input.cartFingerprint } : {}),
     ...(input.customerEmail ? { customerEmail: input.customerEmail } : {}),
-    ...(input.customerUserId ? { customerUserId: input.customerUserId } : {}),
     ...(input.notes ? { notes: input.notes } : {}),
   };
 

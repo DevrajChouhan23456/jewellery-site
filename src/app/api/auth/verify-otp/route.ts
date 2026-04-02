@@ -1,4 +1,5 @@
 import { z } from "zod";
+import crypto from "crypto";
 
 import { getZodErrorMessage, parseJsonBody } from "@/lib/api/validation";
 import { redis } from "@/lib/redis";
@@ -26,9 +27,22 @@ export async function POST(req: Request) {
 
   const { phone, otp } = parsedBody.data;
 
-  const storedOtp = await redis.get(`otp:${phone}`);
+  // Check rate limit for verification attempts
+  const verifyLimitKey = `otp:verify:${phone}`;
+  const verifyAttempts = await redis.incr(verifyLimitKey);
+  if (verifyAttempts === 1) await redis.expire(verifyLimitKey, 300);
 
-  if (!storedOtp || String(storedOtp) !== String(otp)) {
+  if (verifyAttempts > 5) {
+    return Response.json(
+      { success: false, error: "Too many verification attempts. Please try again later." },
+      { status: 429 }
+    );
+  }
+
+  const hashedInputOtp = crypto.createHash("sha256").update(otp.trim()).digest("hex");
+  const storedHashedOtp = await redis.get(`otp:${phone}`);
+
+  if (!storedHashedOtp || hashedInputOtp !== storedHashedOtp) {
     return Response.json(
       { success: false, error: "Invalid or expired OTP" },
       { status: 400 }
@@ -36,6 +50,7 @@ export async function POST(req: Request) {
   }
 
   await redis.del(`otp:${phone}`);
+  await redis.del(verifyLimitKey);
 
   return Response.json({
     success: true,

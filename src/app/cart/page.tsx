@@ -140,6 +140,74 @@ export default function CartPage() {
               </div>
             ) : null}
 
+            {/* Psychological UX Elements */}
+            {items.length > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Free Shipping Progress */}
+                {subtotal < 5000 && (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                        <Truck className="size-5" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-emerald-800">
+                          Free Shipping Unlocked
+                        </div>
+                        <div className="text-xs text-emerald-700">
+                          Add ₹{(5000 - subtotal).toLocaleString()} more
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 h-2 rounded-full bg-emerald-100">
+                      <div
+                        className="h-2 rounded-full bg-emerald-600 transition-all duration-300"
+                        style={{ width: `${Math.min((subtotal / 5000) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Low Stock Alert */}
+                {items.some(item => item.quantity >= 5) && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                        <Bell className="size-5" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-amber-800">
+                          Limited Stock
+                        </div>
+                        <div className="text-xs text-amber-700">
+                          Only a few items left
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Savings Highlight */}
+                {subtotal > 1000 && (
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                        <Tag className="size-5" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-blue-800">
+                          You're Saving
+                        </div>
+                        <div className="text-xs text-blue-700">
+                          ₹{Math.floor(subtotal * 0.1).toLocaleString()} on this order
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {items.length === 0 ? (
               <div className="rounded-2xl border border-black/10 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-white/5">
                 <h1 className="text-xl font-semibold">Your bag is empty</h1>

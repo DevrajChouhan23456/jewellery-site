@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 
@@ -15,7 +15,7 @@ export default function LoginModal({ isOpen, onClose }: any) {
   const [otpArray, setOtpArray] = useState(["", "", "", "", "", ""]);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  const finalOtp = otpArray.join("");
+  const finalOtp = useMemo(() => otpArray.join(""), [otpArray]);
 
   const [timer, setTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
@@ -40,7 +40,7 @@ export default function LoginModal({ isOpen, onClose }: any) {
   }
 
   // 📱 SEND OTP
-  const handleSendOtp = async () => {
+  const handleSendOtp = useCallback(async () => {
     setError("");
 
     if (!phone || phone.length < 10) {
@@ -61,10 +61,10 @@ export default function LoginModal({ isOpen, onClose }: any) {
     } catch {
       toast.error("Failed to send OTP");
     }
-  };
+  }, [phone]);
 
   // 🔐 VERIFY OTP (ONLY NEXTAUTH)
-  const handleVerify = async () => {
+  const handleVerify = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -97,25 +97,27 @@ export default function LoginModal({ isOpen, onClose }: any) {
     }, 800);
 
     setLoading(false);
-  };
+  }, [finalOtp, phone, onClose]);
 
   // 🔁 RESEND OTP
-  const handleResend = async () => {
+  const handleResend = useCallback(async () => {
     await handleSendOtp();
-  };
+  }, [handleSendOtp]);
 
   // 🔢 INPUT CHANGE
-  const handleChange = (value: string, index: number) => {
+  const handleChange = useCallback((value: string, index: number) => {
     if (!/^\d?$/.test(value)) return;
 
-    const newOtp = [...otpArray];
-    newOtp[index] = value;
-    setOtpArray(newOtp);
+    setOtpArray((prev) => {
+      const newOtp = [...prev];
+      newOtp[index] = value;
+      return newOtp;
+    });
 
     if (value && index < 5) {
       inputsRef.current[index + 1]?.focus();
     }
-  };
+  }, []);
 
   // ⬅️ BACKSPACE UX
   const handleKeyDown = (

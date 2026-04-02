@@ -9,22 +9,74 @@ export function Pagination({
   totalPages,
   onPageChange,
 }: PaginationProps) {
-  return (
-    <div className="mt-6 flex gap-2">
-      {Array.from({ length: totalPages }).map((_, index) => {
-        const nextPage = index + 1;
+  if (totalPages <= 1) return null;
 
-        return (
+  const getPages = () => {
+    const pages: (number | "...")[] = [];
+
+    const start = Math.max(1, page - 2);
+    const end = Math.min(totalPages, page + 2);
+
+    if (start > 1) {
+      pages.push(1);
+      if (start > 2) pages.push("...");
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (end < totalPages) {
+      if (end < totalPages - 1) pages.push("...");
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
+
+  const pages = getPages();
+
+  return (
+    <div className="mt-10 flex items-center justify-center gap-2">
+
+      {/* PREVIOUS */}
+      <button
+        onClick={() => onPageChange(page - 1)}
+        disabled={page === 1}
+        className="px-4 py-2 rounded-full border text-sm disabled:opacity-40 hover:bg-gray-100"
+      >
+        Prev
+      </button>
+
+      {/* PAGE NUMBERS */}
+      {pages.map((p, i) =>
+        p === "..." ? (
+          <span key={i} className="px-2 text-gray-400">
+            ...
+          </span>
+        ) : (
           <button
-            key={nextPage}
-            type="button"
-            onClick={() => onPageChange(nextPage)}
-            className={`rounded border px-3 py-1 ${page === nextPage ? "bg-black text-white" : ""}`}
+            key={p}
+            onClick={() => onPageChange(p)}
+            className={`px-4 py-2 rounded-full text-sm transition ${
+              page === p
+                ? "bg-black text-white shadow"
+                : "border hover:bg-gray-100"
+            }`}
           >
-            {nextPage}
+            {p}
           </button>
-        );
-      })}
+        )
+      )}
+
+      {/* NEXT */}
+      <button
+        onClick={() => onPageChange(page + 1)}
+        disabled={page === totalPages}
+        className="px-4 py-2 rounded-full border text-sm disabled:opacity-40 hover:bg-gray-100"
+      >
+        Next
+      </button>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useSyncExternalStore } from "react";
-import { Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { Minus, Plus, ShoppingBag, X, Truck, Bell, Tag } from "lucide-react";
 
 import { useCartStore } from "@/lib/store";
 import { useCartMutations } from "@/lib/use-cart-mutations";
@@ -57,6 +57,47 @@ export default function CartDrawer() {
         </div>
 
         <div className="flex-1 space-y-6 overflow-y-auto p-6">
+          {/* Psychological UX Elements */}
+          {items.length > 0 && (
+            <div className="space-y-3">
+              {/* Free Shipping Progress */}
+              {subtotal < 5000 && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+                    <Truck className="size-4" />
+                    Add ₹{(5000 - subtotal).toLocaleString()} more for FREE shipping
+                  </div>
+                  <div className="mt-2 h-2 rounded-full bg-emerald-100">
+                    <div
+                      className="h-2 rounded-full bg-emerald-600 transition-all duration-300"
+                      style={{ width: `${Math.min((subtotal / 5000) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Low Stock Alert */}
+              {items.some(item => item.quantity >= 5) && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+                    <Bell className="size-4" />
+                    Only a few items left in stock
+                  </div>
+                </div>
+              )}
+
+              {/* Savings Highlight */}
+              {subtotal > 1000 && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-blue-800">
+                    <Tag className="size-4" />
+                    You're saving ₹{Math.floor(subtotal * 0.1).toLocaleString()} on this order
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {items.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center space-y-4 text-gray-500">
               <ShoppingBag className="size-16 stroke-[1] text-gray-200" />

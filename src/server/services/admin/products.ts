@@ -20,6 +20,8 @@ const adminProductListSelect = {
   subCategory: true,
   material: true,
   type: true,
+  size: true,
+  stock: true,
   images: true,
   createdAt: true,
 } satisfies Prisma.ProductSelect;
@@ -33,6 +35,7 @@ const adminProductDetailSelect = {
   subCategory: true,
   material: true,
   type: true,
+  size: true,
   images: true,
   createdAt: true,
 } satisfies Prisma.ProductSelect;
@@ -111,17 +114,50 @@ export async function getAdminProductList(input: unknown) {
   const page = filters.page;
   const query = filters.query?.trim() || null;
   const skip = (page - 1) * ADMIN_PRODUCTS_PAGE_SIZE;
-  const where = query
-    ? {
-        OR: [
-          { name: { contains: query } },
-          { slug: { contains: query } },
-          { category: { contains: query } },
-          { material: { contains: query } },
-          { type: { contains: query } },
-        ],
-      }
-    : undefined;
+
+  const where: Prisma.ProductWhereInput = {};
+
+  if (query) {
+    where.OR = [
+      { name: { contains: query, mode: 'insensitive' } },
+      { slug: { contains: query, mode: 'insensitive' } },
+      { category: { contains: query, mode: 'insensitive' } },
+      { material: { contains: query, mode: 'insensitive' } },
+      { type: { contains: query, mode: 'insensitive' } },
+    ];
+  }
+
+  if (filters.category) {
+    where.category = filters.category;
+  }
+
+  if (filters.material) {
+    where.material = filters.material;
+  }
+
+  if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+    where.price = {};
+    if (filters.minPrice !== undefined) {
+      where.price.gte = filters.minPrice;
+    }
+    if (filters.maxPrice !== undefined) {
+      where.price.lte = filters.maxPrice;
+    }
+  }
+
+  if (filters.stockStatus) {
+    switch (filters.stockStatus) {
+      case 'out-of-stock':
+        where.stock = 0;
+        break;
+      case 'low-stock':
+        where.stock = { gt: 0, lte: 10 };
+        break;
+      case 'in-stock':
+        where.stock = { gt: 10 };
+        break;
+    }
+  }
 
   const [totalProducts, products] = await prisma.$transaction([
     prisma.product.count({ where }),
@@ -141,6 +177,7 @@ export async function getAdminProductList(input: unknown) {
     query: query ?? "",
     totalItems: totalProducts,
     totalPages: Math.max(1, Math.ceil(totalProducts / ADMIN_PRODUCTS_PAGE_SIZE)),
+    filters,
   };
 }
 
@@ -263,7 +300,9 @@ export async function updateAdminProduct(
         subCategory: parsed.data.subCategory,
         material: parsed.data.material,
         type: parsed.data.type,
+        size: parsed.data.size,
         images: parsed.data.images,
+        description: parsed.data.description,
       },
       select: adminProductDetailSelect,
     });
@@ -284,65 +323,57 @@ export async function updateAdminProduct(
   }
 }
 
-export async function deleteAdminProduct(
-  body: unknown,
-): Promise<ProductMutationResult<{ deleted: true; productId: string }>> {
+export async function createAdminProductsBulk(
+  products: CreateProductInput[],
+): Promise<ProductMutationResult<{ products: AdminProductDetail[]; created: number; skipped: number }>> {
   try {
-    const parsed = deleteProductSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return validationError(
-        "Invalid product delete request.",
-        parsed.error.flatten().fieldErrors,
-      );
+    if (products.length === 0) {
+      return validationError("No products to create.");
     }
 
-    const [product, cartItemCount, wishlistCount] = await prisma.$transaction([
-      prisma.product.findUnique({
-        where: { id: parsed.data.id },
-        select: {
-          id: true,
-          category: true,
-        },
-      }),
-      prisma.cartItem.count({
-        where: {
-          productId: parsed.data.id,
-        },
-      }),
-      prisma.wishlist.count({
-        where: {
-          productId: parsed.data.id,
-        },
-      }),
-    ]);
-
-    if (!product) {
-      return failure("Product not found.", 404);
+    if (products.length > 100) {
+      return validationError("Cannot create more than 100 products at once.");
     }
 
-    if (cartItemCount > 0 || wishlistCount > 0) {
-      return failure(
-        "This product is still referenced in customer data and cannot be deleted safely.",
-        409,
-      );
+    // Check for duplicate slugs within the batch
+    const slugs = products.map(p => p.slug);
+    const uniqueSlugs = new Set(slugs);
+    if (slugs.length !== uniqueSlugs.size) {
+      return validationError("Duplicate slugs found in the batch.");
     }
 
-    await prisma.product.delete({
-      where: { id: product.id },
+    // Check for existing slugs in database
+    const existingSlugs = await prisma.product.findMany({
+      where: { slug: { in: slugs } },
+      select: { slug: true },
+    });
+    const existingSlugSet = new Set(existingSlugs.map(p => p.slug));
+
+    const validProducts = products.filter(p => !existingSlugSet.has(p.slug));
+    const skipped = products.length - validProducts.length;
+
+    if (validProducts.length === 0) {
+      return validationError("All products have duplicate slugs.");
+    }
+
+    const createdProducts = await prisma.product.createManyAndReturn({
+      data: validProducts,
+      select: adminProductDetailSelect,
     });
 
-    revalidateProductPaths(product);
+    // Revalidate paths for created products
+    createdProducts.forEach(product => revalidateProductPaths(product));
 
     return {
       data: {
-        deleted: true,
-        productId: product.id,
+        products: createdProducts,
+        created: createdProducts.length,
+        skipped,
       },
-      status: 200,
+      status: 201,
     };
   } catch (error) {
-    console.error("Failed to delete admin product:", error);
-    return failure("Unable to delete the product right now.", 500);
+    console.error("Failed to bulk create admin products:", error);
+    return failure("Unable to create products right now.", 500);
   }
 }

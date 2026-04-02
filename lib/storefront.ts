@@ -356,7 +356,12 @@ export async function getShopPageData(slug: string) {
 
   // 🔥 FALLBACK → FETCH PRODUCTS
   const products = await prisma.product.findMany({
-    where: { category: slug },
+    where: { 
+      category: { 
+        contains: slug, 
+        mode: 'insensitive' 
+      } 
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -378,6 +383,7 @@ export async function getShopPageData(slug: string) {
     features: [],
     products: products.map((p, index) => ({
       id: p.id,
+      slug: p.slug,
       name: p.name,
       price: p.price,
       imageUrl: p.images?.[0] ?? "",
@@ -420,12 +426,13 @@ export async function getFilteredProducts({
     where.material = { in: materials };
   }
 
-  if (categories?.length) {
-    where.type = { 
-      in: categories,
-      mode: 'insensitive'
-    };
-  }
+  // Skip strict type filter for subcategory, use category only for now
+  // if (categories?.length) {
+  //   where.type = { 
+  //     in: categories,
+  //     mode: 'insensitive'
+  //   };
+  // }
 
   console.log('[DEBUG] Final where clause:', JSON.stringify(where, null, 2));
 

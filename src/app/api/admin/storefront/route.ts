@@ -399,6 +399,7 @@ export async function PUT(request: Request) {
           ),
           products: products.map(
             (product: Record<string, unknown>, index: number) => ({
+              slug: text(product.slug) || `${slug}-product-${index + 1}`,
               name: text(product.name) || "Untitled product",
               price: numberValue(product.price),
               imageUrl: optionalText(product.imageUrl),

@@ -71,6 +71,7 @@ export async function getOrCreateCart() {
       sameSite: "lax",
       path: "/",
       maxAge: CART_COOKIE_MAX_AGE,
+      secure: process.env.NODE_ENV === "production",
     });
   }
 
@@ -79,7 +80,7 @@ export async function getOrCreateCart() {
       status: "ACTIVE",
       OR: [
         { sessionId },
-        ...(userId ? [{ customerId: userId }] : []),
+        ...(userId ? [{ userId }] : []),
       ],
     },
     orderBy: {
@@ -91,16 +92,16 @@ export async function getOrCreateCart() {
     cart = await prisma.cart.create({
       data: {
         sessionId,
-        customerId: userId ?? undefined,
+        userId: userId ?? undefined,
         status: "ACTIVE",
       },
     });
-  } else if (cart.sessionId !== sessionId || (userId && !cart.customerId)) {
+  } else if (cart.sessionId !== sessionId || (userId && !cart.userId)) {
     cart = await prisma.cart.update({
       where: { id: cart.id },
       data: {
         sessionId,
-        customerId: cart.customerId ?? userId ?? undefined,
+        userId: cart.userId ?? userId ?? undefined,
       },
     });
   }
@@ -244,11 +245,10 @@ async function buildCartResponse(
   };
 }
 
-async function getCartItems(cartId: string, userId: string) {
+async function getCartItems(cartId: string) {
   return prisma.cartItem.findMany({
     where: {
       cartId,
-      userId,
     },
     select: {
       productId: true,
@@ -270,7 +270,7 @@ export async function getCart(): Promise<CartOperationResult> {
     }
 
     const cart = await getOrCreateCart();
-    const items = await getCartItems(cart.id, userId);
+    const items = await getCartItems(cart.id);
 
     return {
       data: await buildCartResponse(cart.id, items),
@@ -311,7 +311,6 @@ export async function addItem(body: unknown): Promise<CartOperationResult> {
       where: {
         cartId: cart.id,
         productId: resolvedProduct.id,
-        userId,
       },
       select: {
         id: true,
@@ -341,12 +340,11 @@ export async function addItem(body: unknown): Promise<CartOperationResult> {
           ...(resolvedProduct.kind === "shopPageProduct"
             ? { shopPageProductId: resolvedProduct.id }
             : {}),
-          userId,
         },
       });
     }
 
-    const items = await getCartItems(cart.id, userId);
+    const items = await getCartItems(cart.id);
 
     return {
       data: await buildCartResponse(cart.id, items),
@@ -381,7 +379,6 @@ export async function updateQuantity(body: unknown): Promise<CartOperationResult
       where: {
         cartId: cart.id,
         productId: parsed.data.productId,
-        userId,
       },
       data: {
         quantity: parsed.data.quantity,
@@ -392,7 +389,7 @@ export async function updateQuantity(body: unknown): Promise<CartOperationResult
       return { error: "Item not in cart.", status: 404 };
     }
 
-    const items = await getCartItems(cart.id, userId);
+    const items = await getCartItems(cart.id);
 
     return {
       data: await buildCartResponse(cart.id, items),
@@ -427,7 +424,6 @@ export async function removeItem(body: unknown): Promise<CartOperationResult> {
       where: {
         cartId: cart.id,
         productId: parsed.data.productId,
-        userId,
       },
     });
 
@@ -435,7 +431,7 @@ export async function removeItem(body: unknown): Promise<CartOperationResult> {
       return { error: "Item not in cart.", status: 404 };
     }
 
-    const items = await getCartItems(cart.id, userId);
+    const items = await getCartItems(cart.id);
 
     return {
       data: await buildCartResponse(cart.id, items),

@@ -70,6 +70,15 @@ const optionalTaxonomySchema = z
   )
   .transform((value) => (value ? toProductSlug(value) : null));
 
+const optionalSizeSchema = z
+  .string()
+  .trim()
+  .max(
+    MAX_TAXONOMY_VALUE_LENGTH,
+    `Size must be ${MAX_TAXONOMY_VALUE_LENGTH} characters or fewer.`,
+  )
+  .transform((value) => (value ? toProductSlug(value) : null));
+
 const imageSourceSchema = z
   .string()
   .trim()
@@ -106,6 +115,7 @@ export const createProductSchema = z.object({
   subCategory: optionalTaxonomySchema,
   material: taxonomySchema("Material"),
   type: taxonomySchema("Type"),
+  size: optionalSizeSchema,
   images: imageCollectionSchema,
 });
 
@@ -120,6 +130,11 @@ export const deleteProductSchema = z.object({
 export const adminProductListFiltersSchema = z.object({
   page: z.coerce.number().int().min(1).catch(1),
   query: optionalText(100).catch(null),
+  category: optionalText(60).catch(null),
+  material: optionalText(60).catch(null),
+  minPrice: z.coerce.number().int().min(0).optional(),
+  maxPrice: z.coerce.number().int().min(0).optional(),
+  stockStatus: z.enum(['in-stock', 'out-of-stock', 'low-stock']).optional(),
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;

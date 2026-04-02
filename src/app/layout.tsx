@@ -3,14 +3,19 @@ import type { CSSProperties } from "react";
 import "./globals.css";
 
 import Providers from "./provider";
+import ClientLayout from "@/components/client-layout";
 import SiteShell from "@/components/site-shell";
 import { Toaster } from "react-hot-toast";
+import { initializeAutomation } from "@/server/automation-init";
 
 export const metadata: Metadata = {
   title: "Tanishq | Fine Jewellery",
   description:
     "Shop from the finest collection of gold, diamond, and platinum jewellery.",
 };
+
+// Initialize automation on app start
+initializeAutomation().catch(console.error);
 
 export default function RootLayout({
   children,
@@ -19,18 +24,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        className="antialiased"
-        style={
-          {
-            "--font-geist-sans": "system-ui, sans-serif",
-            "--font-geist-mono": "ui-monospace, SFMono-Regular, monospace",
-          } as CSSProperties
-        }
-      >
+      <body className="antialiased">
         <Providers>
-          <SiteShell>{children}</SiteShell>
-          <Toaster position="top-center" />
+          <ClientLayout>
+            {children}
+          </ClientLayout>
         </Providers>
       </body>
     </html>

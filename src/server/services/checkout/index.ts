@@ -1,6 +1,7 @@
 import type { OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 
 import { getOrCreateCart } from "@/lib/cart";
+import eventBus from "@/lib/event-bus";
 import {
   getCurrentCustomerSession,
   getCurrentCustomerUserId,
@@ -85,7 +86,6 @@ export async function getCheckoutCartSnapshot(
   const cartItems = await db.cartItem.findMany({
     where: {
       cartId,
-      userId,
     },
     select: {
       productId: true,
@@ -315,6 +315,12 @@ export async function checkout(body: unknown): Promise<CheckoutResult> {
             },
           },
         },
+      });
+
+      eventBus.emit("order.created", {
+        orderId: createdOrder.id,
+        userId,
+        totalAmount: createdOrder.totalAmount,
       });
 
       return {
