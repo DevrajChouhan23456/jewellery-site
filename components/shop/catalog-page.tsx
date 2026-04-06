@@ -4,9 +4,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Heart, Users, Clock } from "lucide-react";
+import { ArrowRight, Heart, Users, Clock, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { VariableRewardPopup, useVariableRewards } from "@/components/variable-reward-popup";
+import { MagicCard } from "@/components/ui/magicui/magic-card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 type CatalogProduct = {
   id: string;
@@ -66,9 +75,9 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
   const { showPopup, currentDiscount, closePopup } = useVariableRewards();
 
   const [products, setProducts] = useState<CatalogProduct[]>(page.products || []);
-  const [total, setTotal] = useState(page.products.length);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
 
   const [filters, setFilters] = useState<CatalogFilters>({
@@ -97,6 +106,24 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
     });
     setHasMore(true);
   };
+
+  const resetFilters = useCallback(() => {
+    setFilters({
+      page: 1,
+      sort: "latest",
+      minPrice: "",
+      maxPrice: "",
+      materials: [],
+      categories: [],
+    });
+    setHasMore(true);
+  }, []);
+
+  const activeFilterCount =
+    filters.materials.length +
+    filters.categories.length +
+    (filters.minPrice ? 1 : 0) +
+    (filters.maxPrice ? 1 : 0);
 
   // 🔥 INFINITE SCROLL LOGIC
   const loadMoreProducts = useCallback(async () => {
@@ -161,7 +188,6 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
     // If page.products is already populated (from ShopPageProduct), don't fetch API
     if (page.products && page.products.length > 0) {
       setProducts(page.products);
-      setTotal(page.products.length);
       setHasMore(page.products.length >= 9);
       return;
     }
@@ -189,7 +215,6 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
         const data = await res.json();
 
         setProducts(data.products || []);
-        setTotal(data.total || 0);
         setHasMore((data.products || []).length >= 9);
       } catch (err) {
         console.error(err);
@@ -219,40 +244,59 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
 
   return (
     <>
-      {/* 🔥 CATEGORY HERO */}
-      <div className="bg-gradient-to-r from-teal-500 to-emerald-400 py-14 mb-10">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 px-6">
-          {["Earrings", "Pendants", "Rings", "Gifts"].map((item) => (
-            <div
-              key={item}
-              className="bg-white rounded-2xl p-5 text-center shadow hover:shadow-xl transition"
-            >
-              <div className="h-32 bg-gray-100 rounded-xl mb-3" />
-              <p className="font-medium">{item}</p>
-            </div>
-          ))}
+      <section className="relative mb-8 overflow-hidden border-b border-[#832729]/10 bg-linear-to-r from-[#fff8ef] via-[#fff4eb] to-[#ffe8e6] py-14">
+        <div className="pointer-events-none absolute inset-0 opacity-35">
+          <div className="absolute -left-20 top-0 h-56 w-56 rounded-full bg-[#832729]/10 blur-3xl" />
+          <div className="absolute right-0 top-8 h-64 w-64 rounded-full bg-[#fe8bbb]/20 blur-3xl" />
         </div>
-      </div>
+        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#832729]/20 bg-white/70 px-3 py-1 text-xs font-medium text-[#832729]">
+              <Sparkles className="size-3.5" />
+              Curated for your style
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold capitalize text-stone-900 md:text-4xl">
+              {page.slug.replace(/-/g, " ")} Collection
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-stone-600">
+              Discover handcrafted pieces designed for everyday elegance and special occasions.
+              Use filters to quickly find the perfect match by material, category, and price.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            {["Earrings", "Pendants", "Rings", "Gifts"].map((item) => (
+              <MagicCard
+                key={item}
+                className="rounded-2xl"
+                gradientFrom="#832729"
+                gradientTo="#FE8BBB"
+                gradientOpacity={0.08}
+                gradientSize={180}
+              >
+                <div className="rounded-2xl border border-white/80 bg-white/85 p-4 text-center shadow-sm">
+                  <div className="mb-2 h-16 rounded-xl bg-linear-to-br from-[#832729]/10 to-[#fe8bbb]/15" />
+                  <p className="text-sm font-medium text-stone-800">{item}</p>
+                </div>
+              </MagicCard>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <main className="min-h-screen bg-[#fffaf4] px-4 pb-16">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 lg:grid-cols-4">
           
           {/* 🔥 FILTER SIDEBAR */}
-          <div className="sticky top-24 space-y-6 rounded-2xl bg-white p-6 shadow">
-            <div className="flex justify-between">
-              <h3 className="font-semibold">Filters</h3>
+          <div className="sticky top-24 hidden h-fit space-y-6 rounded-2xl border border-[#832729]/10 bg-white/90 p-6 shadow-sm backdrop-blur lg:block">
+            <div className="flex items-center justify-between">
+              <h3 className="inline-flex items-center gap-2 font-semibold text-stone-900">
+                <SlidersHorizontal className="size-4 text-[#832729]" />
+                Filters
+              </h3>
               <button
-                onClick={() =>
-                  setFilters({
-                    page: 1,
-                    sort: "latest",
-                    minPrice: "",
-                    maxPrice: "",
-                    materials: [],
-                    categories: [],
-                  })
-                }
-                className="text-sm text-red-500"
+                onClick={resetFilters}
+                className="text-xs font-medium text-red-500 hover:underline"
               >
                 Clear
               </button>
@@ -260,22 +304,24 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
 
             {/* PRICE */}
             <div>
-              <p className="text-sm mb-2">Price</p>
+              <p className="mb-2 text-sm font-medium text-stone-700">Price range</p>
               <input
+                type="number"
                 placeholder="Min"
-                className="w-full border rounded p-2 mb-2"
+                className="mb-2 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-[#832729]/40 focus:outline-none focus:ring-2 focus:ring-[#832729]/10"
                 value={filters.minPrice}
                 onChange={(e) =>
-                  setFilters({ ...filters, minPrice: e.target.value, page: 1 })
+                  setFilters((prev) => ({ ...prev, minPrice: e.target.value, page: 1 }))
                 }
                 onBlur={() => setHasMore(true)}
               />
               <input
+                type="number"
                 placeholder="Max"
-                className="w-full border rounded p-2"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-[#832729]/40 focus:outline-none focus:ring-2 focus:ring-[#832729]/10"
                 value={filters.maxPrice}
                 onChange={(e) =>
-                  setFilters({ ...filters, maxPrice: e.target.value, page: 1 })
+                  setFilters((prev) => ({ ...prev, maxPrice: e.target.value, page: 1 }))
                 }
                 onBlur={() => setHasMore(true)}
               />
@@ -283,31 +329,39 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
 
             {/* MATERIAL */}
             <div>
-              <p className="text-sm mb-2">Material</p>
+              <p className="mb-2 text-sm font-medium text-stone-700">Material</p>
               {["gold", "diamond", "silver"].map((item) => (
-                <label key={item} className="flex gap-2 text-sm mb-2">
-                  <input
-                    type="checkbox"
-                    checked={filters.materials.includes(item)}
-                    onChange={() => toggleFilter("materials", item)}
-                  />
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => toggleFilter("materials", item)}
+                  className={`mb-2 mr-2 rounded-full border px-3 py-1 text-sm capitalize transition ${
+                    filters.materials.includes(item)
+                      ? "border-[#832729] bg-[#832729] text-white"
+                      : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                  }`}
+                >
                   {item}
-                </label>
+                </button>
               ))}
             </div>
 
             {/* CATEGORY */}
             <div>
-              <p className="text-sm mb-2">Category</p>
+              <p className="mb-2 text-sm font-medium text-stone-700">Category</p>
               {["ring", "necklace", "bracelet"].map((item) => (
-                <label key={item} className="flex gap-2 text-sm mb-2">
-                  <input
-                    type="checkbox"
-                    checked={filters.categories.includes(item)}
-                    onChange={() => toggleFilter("categories", item)}
-                  />
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => toggleFilter("categories", item)}
+                  className={`mb-2 mr-2 rounded-full border px-3 py-1 text-sm capitalize transition ${
+                    filters.categories.includes(item)
+                      ? "border-[#832729] bg-[#832729] text-white"
+                      : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                  }`}
+                >
                   {item}
-                </label>
+                </button>
               ))}
             </div>
           </div>
@@ -317,36 +371,164 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
 
             {/* TOP BAR */}
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold capitalize">
-                {page.slug}
+              <h2 className="text-xl font-semibold capitalize text-stone-900">
+                {page.slug.replace(/-/g, " ")}
               </h2>
+              <div className="flex items-center gap-2">
+                <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
+                  <SheetTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="inline-flex lg:hidden"
+                    >
+                      <SlidersHorizontal className="size-4" />
+                      Filters
+                      {activeFilterCount > 0 ? (
+                        <span className="rounded-full bg-[#832729] px-2 py-0.5 text-xs text-white">
+                          {activeFilterCount}
+                        </span>
+                      ) : null}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[320px] overflow-y-auto p-5">
+                    <SheetHeader className="mb-4 p-0">
+                      <SheetTitle className="flex items-center gap-2">
+                        <SlidersHorizontal className="size-4 text-[#832729]" />
+                        Filters
+                      </SheetTitle>
+                    </SheetHeader>
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-stone-700">Active filters</p>
+                        <button
+                          type="button"
+                          onClick={resetFilters}
+                          className="text-xs font-medium text-red-500 hover:underline"
+                        >
+                          Clear all
+                        </button>
+                      </div>
 
-              <select
-                value={filters.sort}
-                onChange={(e) => {
-                  setFilters({ ...filters, sort: e.target.value, page: 1 });
-                  setHasMore(true);
-                }}
-                className="border rounded-full px-4 py-2 text-sm"
-              >
-                <option value="latest">Latest</option>
-                <option value="price_asc">Price Low → High</option>
-                <option value="price_desc">Price High → Low</option>
-              </select>
+                      <div>
+                        <p className="mb-2 text-sm font-medium text-stone-700">Price range</p>
+                        <input
+                          type="number"
+                          placeholder="Min"
+                          className="mb-2 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-[#832729]/40 focus:outline-none focus:ring-2 focus:ring-[#832729]/10"
+                          value={filters.minPrice}
+                          onChange={(e) =>
+                            setFilters((prev) => ({ ...prev, minPrice: e.target.value, page: 1 }))
+                          }
+                          onBlur={() => setHasMore(true)}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Max"
+                          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-[#832729]/40 focus:outline-none focus:ring-2 focus:ring-[#832729]/10"
+                          value={filters.maxPrice}
+                          onChange={(e) =>
+                            setFilters((prev) => ({ ...prev, maxPrice: e.target.value, page: 1 }))
+                          }
+                          onBlur={() => setHasMore(true)}
+                        />
+                      </div>
+
+                      <div>
+                        <p className="mb-2 text-sm font-medium text-stone-700">Material</p>
+                        {["gold", "diamond", "silver"].map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => toggleFilter("materials", item)}
+                            className={`mb-2 mr-2 rounded-full border px-3 py-1 text-sm capitalize transition ${
+                              filters.materials.includes(item)
+                                ? "border-[#832729] bg-[#832729] text-white"
+                                : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div>
+                        <p className="mb-2 text-sm font-medium text-stone-700">Category</p>
+                        {["ring", "necklace", "bracelet"].map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => toggleFilter("categories", item)}
+                            className={`mb-2 mr-2 rounded-full border px-3 py-1 text-sm capitalize transition ${
+                              filters.categories.includes(item)
+                                ? "border-[#832729] bg-[#832729] text-white"
+                                : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
+                <select
+                  value={filters.sort}
+                  onChange={(e) => {
+                    setFilters({ ...filters, sort: e.target.value, page: 1 });
+                    setHasMore(true);
+                  }}
+                  className="border rounded-full px-4 py-2 text-sm"
+                >
+                  <option value="latest">Latest</option>
+                  <option value="price_asc">Price Low → High</option>
+                  <option value="price_desc">Price High → Low</option>
+                </select>
+              </div>
             </div>
 
             {/* FILTER PILLS */}
             <div className="mb-6 flex flex-wrap gap-3">
+              {activeFilterCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-sm text-red-600"
+                >
+                  Clear all
+                  <X className="size-3" />
+                </button>
+              ) : null}
               {filters.materials.map((item) => (
-                <span key={item} className="px-4 py-1 border rounded-full text-sm">
+                <button
+                  type="button"
+                  key={item}
+                  onClick={() => toggleFilter("materials", item)}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#832729]/20 bg-[#832729]/5 px-3 py-1 text-sm capitalize text-[#832729]"
+                >
                   {item}
-                </span>
+                  <X className="size-3" />
+                </button>
               ))}
               {filters.categories.map((item) => (
-                <span key={item} className="px-4 py-1 border rounded-full text-sm">
+                <button
+                  type="button"
+                  key={item}
+                  onClick={() => toggleFilter("categories", item)}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#832729]/20 bg-[#832729]/5 px-3 py-1 text-sm capitalize text-[#832729]"
+                >
                   {item}
-                </span>
+                  <X className="size-3" />
+                </button>
               ))}
+              {filters.materials.length === 0 && filters.categories.length === 0 ? (
+                <span className="text-sm text-stone-500">No active filters</span>
+              ) : null}
+            </div>
+
+            <div className="mb-6 text-sm text-stone-500">
+              Showing <span className="font-medium text-stone-700">{products.length}</span> products
             </div>
 
             {/* GRID */}
@@ -404,7 +586,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                           />
                           {/* Shimmer effect */}
                           <motion.div
-                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                            className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent"
                             initial={{ x: "-100%" }}
                             whileHover={{ x: "100%" }}
                             transition={{ duration: 0.6, ease: "easeInOut" }}
