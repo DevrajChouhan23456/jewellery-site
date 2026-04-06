@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { markRecoveryClicked } from '@/server/services/automation/cart-recovery';
-import { posthogEvents } from '@/lib/posthog-analytics';
+import { posthogEvents } from '@/lib/posthog-events';
 import prisma from '@/lib/prisma';
 
 interface RecoveryPageProps {

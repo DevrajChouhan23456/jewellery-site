@@ -51,7 +51,11 @@ export default function Providers({
   children: React.ReactNode;
 }) {
   return (
-    <SessionProvider>
+    <SessionProvider
+      refetchInterval={5 * 60}
+      refetchOnWindowFocus
+      refetchWhenOffline={false}
+    >
       <SmoothScroll />
       <CartInitializer />
       {children}

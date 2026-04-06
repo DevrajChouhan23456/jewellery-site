@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { auth } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import prisma from "@/lib/prisma";
+import { getAdminSession } from "@/server/auth/admin";
 
 export async function POST() {
-  const session = await auth();
+  const session = await getAdminSession();
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -20,11 +20,19 @@ export async function POST() {
       update: {
         passwordHash: hashPassword(password),
         role: "ADMIN",
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        twoFactorPendingSecret: null,
+        twoFactorUpdatedAt: null,
       },
       create: {
         username,
         passwordHash: hashPassword(password),
         role: "ADMIN",
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        twoFactorPendingSecret: null,
+        twoFactorUpdatedAt: null,
       },
     });
 

@@ -1,7 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
-import { Suspense } from "react";
+import { ArrowLeft, PackagePlus, Search, SlidersHorizontal } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { BlurFade } from "@/components/ui/magicui/blur-fade";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { requireAdminPageAccess } from "@/server/auth/admin";
 import { getAdminProductList } from "@/server/services/admin/products";
 import ProductList from "@/features/admin/products/components/ProductList";
@@ -40,57 +43,96 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const resolvedSearchParams = await searchParams;
   const productsPage = await getAdminProductList(resolvedSearchParams);
 
-  return (
-    <main className="luxury-shell py-10 sm:py-12">
-      <section className="rounded-[2rem] border border-white/70 bg-white/80 luxury-shadow backdrop-blur">
-        <div className="flex flex-col gap-6 border-b border-stone-100 px-6 py-6 sm:px-8 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--luxury-gold-deep)]">
-              Catalog Operations
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-stone-950">
-              Manage products
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--luxury-muted)]">
-              Search, review, and update products through a paginated admin view
-              that stays responsive as the inventory grows.
-            </p>
-          </div>
+  const listFilters = {
+    category: productsPage.filters.category,
+    material: productsPage.filters.material,
+    minPrice: productsPage.filters.minPrice,
+    maxPrice: productsPage.filters.maxPrice,
+    stockStatus: productsPage.filters.stockStatus,
+  };
 
-          <ProductList query={productsPage.query} filters={productsPage.filters}>
-            <div className="grid gap-4 border-b border-stone-100 px-6 py-5 sm:px-8 md:grid-cols-3">
-              <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/70 p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                  Total Matching Products
-                </p>
-                <p className="mt-3 text-3xl font-semibold text-stone-950">
-                  {productsPage.totalItems}
+  return (
+    <AdminPageShell>
+      <div className="space-y-6">
+        <BlurFade inView delay={0.04}>
+          <section className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/86 shadow-[0_24px_80px_-52px_rgba(28,25,23,0.38)] backdrop-blur">
+            <div className="grid gap-6 px-6 py-6 sm:px-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                  >
+                    <Link href="/admin/dashboard">
+                      <ArrowLeft className="size-4" />
+                      Dashboard
+                    </Link>
+                  </Button>
+                  <Badge className="rounded-full border-cyan-200 bg-cyan-50 text-cyan-700">
+                    Catalog workspace
+                  </Badge>
+                </div>
+                <h1 className="mt-5 text-4xl font-semibold tracking-tight text-stone-950">
+                  Manage the catalog with cleaner search, editing, and context.
+                </h1>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600 sm:text-base">
+                  Review products, filter the inventory, and jump into edits from
+                  a calmer admin surface that matches the updated dashboard.
                 </p>
               </div>
-              <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/70 p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                  Page
-                </p>
-                <p className="mt-3 text-3xl font-semibold text-stone-950">
-                  {productsPage.page}
-                </p>
-              </div>
-              <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/70 p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
-                  Page Size
-                </p>
-                <p className="mt-3 text-3xl font-semibold text-stone-950">
-                  {productsPage.pageSize}
-                </p>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 px-4 py-4">
+                  <div className="flex items-center gap-2 text-stone-500">
+                    <PackagePlus className="size-4" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em]">
+                      Matching
+                    </p>
+                  </div>
+                  <p className="mt-2 text-xl font-semibold text-stone-950">
+                    {productsPage.totalItems}
+                  </p>
+                </div>
+                <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 px-4 py-4">
+                  <div className="flex items-center gap-2 text-stone-500">
+                    <Search className="size-4" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em]">
+                      Page
+                    </p>
+                  </div>
+                  <p className="mt-2 text-xl font-semibold text-stone-950">
+                    {productsPage.page}
+                  </p>
+                </div>
+                <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 px-4 py-4">
+                  <div className="flex items-center gap-2 text-stone-500">
+                    <SlidersHorizontal className="size-4" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em]">
+                      Page size
+                    </p>
+                  </div>
+                  <p className="mt-2 text-xl font-semibold text-stone-950">
+                    {productsPage.pageSize}
+                  </p>
+                </div>
               </div>
             </div>
+          </section>
+        </BlurFade>
 
+        <section className="rounded-[2rem] border border-white/70 bg-white/86 shadow-[0_22px_70px_-50px_rgba(28,25,23,0.38)] backdrop-blur">
+          <ProductList query={productsPage.query} filters={listFilters}>
             <div className="divide-y divide-stone-100">
               {productsPage.items.length === 0 ? (
                 <div className="px-6 py-16 text-center sm:px-8">
-                  <h2 className="text-xl font-semibold text-stone-950">No matching products</h2>
-                  <p className="mt-3 text-sm text-[var(--luxury-muted)]">
-                    Try a different search term or create a new product entry for the catalog.
+                  <h2 className="text-xl font-semibold text-stone-950">
+                    No matching products
+                  </h2>
+                  <p className="mt-3 text-sm text-stone-500">
+                    Try a broader search term or create a new product for the
+                    catalog.
                   </p>
                 </div>
               ) : (
@@ -100,8 +142,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               )}
             </div>
 
-            <div className="flex flex-col gap-4 px-6 py-5 sm:px-8 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-[var(--luxury-muted)]">
+            <div className="flex flex-col gap-4 border-t border-stone-100 px-6 py-5 sm:px-8 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-stone-500">
                 Showing page {productsPage.page} of {productsPage.totalPages}.
               </p>
               <div className="flex items-center gap-3">
@@ -111,10 +153,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                     productsPage.query,
                   )}
                   aria-disabled={productsPage.page === 1}
-                  className={`inline-flex rounded-full px-4 py-2 text-sm font-medium transition ${
+                  className={`inline-flex h-8 items-center justify-center rounded-full border px-3 text-sm font-medium transition ${
                     productsPage.page === 1
-                      ? "pointer-events-none border border-stone-200 bg-stone-100 text-stone-400"
-                      : "border border-stone-300 bg-white text-stone-900 hover:border-stone-400 hover:bg-stone-50"
+                      ? "pointer-events-none border-stone-200 bg-stone-100 text-stone-400"
+                      : "border-stone-300 bg-white text-stone-900 hover:bg-stone-50"
                   }`}
                 >
                   Previous
@@ -125,10 +167,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                     productsPage.query,
                   )}
                   aria-disabled={productsPage.page >= productsPage.totalPages}
-                  className={`inline-flex rounded-full px-4 py-2 text-sm font-medium transition ${
+                  className={`inline-flex h-8 items-center justify-center rounded-full border px-3 text-sm font-medium transition ${
                     productsPage.page >= productsPage.totalPages
-                      ? "pointer-events-none border border-stone-200 bg-stone-100 text-stone-400"
-                      : "border border-stone-300 bg-white text-stone-900 hover:border-stone-400 hover:bg-stone-50"
+                      ? "pointer-events-none border-stone-200 bg-stone-100 text-stone-400"
+                      : "border-stone-300 bg-white text-stone-900 hover:bg-stone-50"
                   }`}
                 >
                   Next
@@ -136,8 +178,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               </div>
             </div>
           </ProductList>
-        </div>
-      </section>
-    </main>
+        </section>
+      </div>
+    </AdminPageShell>
   );
 }

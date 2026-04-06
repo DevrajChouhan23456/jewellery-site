@@ -1,10 +1,22 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import AdminTwoFactorSettings from "@/components/admin/AdminTwoFactorSettings";
+import prisma from "@/lib/prisma";
 import { requireAdminPageAccess } from "@/server/auth/admin";
 
 export default async function EditLoginPage() {
-  await requireAdminPageAccess("/admin/dashboard/edit-login");
+  const session = await requireAdminPageAccess("/admin/dashboard/edit-login");
+  const admin = await prisma.adminUser.findUnique({
+    where: { id: session.user.id },
+    select: {
+      username: true,
+      twoFactorEnabled: true,
+      twoFactorSecret: true,
+      twoFactorPendingSecret: true,
+      twoFactorUpdatedAt: true,
+    },
+  });
 
   return (
     <main className="luxury-shell py-10 sm:py-12">
@@ -26,11 +38,16 @@ export default async function EditLoginPage() {
         <div className="border-b border-stone-100 px-6 py-5 sm:px-8">
           <h2 className="text-xl font-semibold text-stone-950">Admin Login Settings</h2>
           <p className="mt-1 text-sm text-[var(--luxury-muted)]">
-            Configure admin authentication settings
+            Configure the separate admin account, password recovery path, and authenticator protection
           </p>
         </div>
         <div className="px-6 py-8 sm:px-8">
-          <p className="text-stone-600">This feature is under development.</p>
+          <AdminTwoFactorSettings
+            initialEnabled={Boolean(admin?.twoFactorEnabled && admin?.twoFactorSecret)}
+            initialHasPendingSetup={Boolean(admin?.twoFactorPendingSecret)}
+            initialUpdatedAt={admin?.twoFactorUpdatedAt?.toISOString() ?? null}
+            username={admin?.username ?? session.user.username ?? "admin"}
+          />
         </div>
       </section>
     </main>

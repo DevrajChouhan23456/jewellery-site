@@ -19,7 +19,7 @@ export default function UnauthorizedPage() {
             href="/admin/login"
             className="inline-flex items-center justify-center rounded-full bg-stone-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-stone-800"
           >
-            Go to Admin Login
+            Go to Sign In
           </Link>
           <Link
             href="/"

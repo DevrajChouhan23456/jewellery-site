@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
@@ -7,6 +8,7 @@ import { uploadImage } from "@/lib/cloudinary";
 import {prisma} from "@/lib/prisma";
 import { getStorefrontAdminData } from "@/lib/storefront";
 import { storefrontRequestSchema } from "@/lib/validations/storefront";
+import { toProductSlug } from "@/features/admin/products/validation";
 
 const sectionKeys = ["category", "trending", "arrival", "gender"] as const;
 const slugPattern = /^[a-z0-9-]+$/;
@@ -84,6 +86,130 @@ function validationResponse(errors: string[]) {
     { error: errors.slice(0, 5).join(" ") },
     { status: 400 },
   );
+}
+
+type StorefrontFeatureInput = {
+  href: string;
+  imageUrl: string;
+  order: number;
+  title: string;
+};
+
+type StorefrontProductInput = {
+  badge: string | null;
+  imageUrl: string | null;
+  lowStockText: string | null;
+  name: string;
+  order: number;
+  price: number;
+  slug: string;
+};
+
+function buildStorefrontProductData(
+  product: StorefrontProductInput,
+  index: number,
+) {
+  const slug = toProductSlug(product.slug || product.name || `product-${index + 1}`);
+
+  return {
+    slug,
+    name: product.name || "Untitled product",
+    price: product.price || 0,
+    imageUrl: product.imageUrl,
+    images: product.imageUrl ? [product.imageUrl] : [],
+    description: `The ${product.name} is a stunning piece of fine jewellery.`,
+    specifications: { "Metal Purity": "18KT Gold" },
+    badge: product.badge,
+    lowStockText: product.lowStockText,
+    order: product.order || index + 1,
+    category: "jewellery",
+    material: "gold",
+    type: "ring",
+  };
+}
+
+async function replaceStorefrontShopPageFeatures(
+  db: Prisma.TransactionClient,
+  shopPageId: string,
+  features: StorefrontFeatureInput[],
+) {
+  await db.shopPageFeature.deleteMany({
+    where: { shopPageId },
+  });
+
+  if (features.length === 0) {
+    return;
+  }
+
+  await db.shopPageFeature.createMany({
+    data: features.map((feature) => ({
+      ...feature,
+      shopPageId,
+    })),
+  });
+}
+
+async function syncStorefrontShopPageProducts(
+  db: Prisma.TransactionClient,
+  shopPageId: string,
+  products: StorefrontProductInput[],
+) {
+  const retainedProductIds: string[] = [];
+
+  for (const [index, product] of products.entries()) {
+    const productData = buildStorefrontProductData(product, index);
+    const persistedProduct = await db.shopPageProduct.upsert({
+      where: { slug: productData.slug },
+      update: {
+        ...productData,
+        shopPageId,
+      },
+      create: {
+        ...productData,
+        shopPageId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    retainedProductIds.push(persistedProduct.id);
+  }
+
+  const staleProducts = await db.shopPageProduct.findMany({
+    where:
+      retainedProductIds.length > 0
+        ? {
+            shopPageId,
+            id: { notIn: retainedProductIds },
+          }
+        : { shopPageId },
+    select: {
+      id: true,
+      cartItems: {
+        select: { id: true },
+        take: 1,
+      },
+      orderItems: {
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
+
+  const deletableProductIds = staleProducts
+    .filter((product) => product.cartItems.length === 0 && product.orderItems.length === 0)
+    .map((product) => product.id);
+
+  if (deletableProductIds.length === 0) {
+    return;
+  }
+
+  await db.shopPageProduct.deleteMany({
+    where: {
+      id: { in: deletableProductIds },
+    },
+  });
 }
 
 export async function GET() {
@@ -412,29 +538,30 @@ export async function PUT(request: Request) {
       },
     );
 
-    const transactionOperations = [
-      prisma.homepageSection.deleteMany(),
-      prisma.homepageSection.createMany({
+    await prisma.$transaction(async (tx) => {
+      await tx.homepageSection.deleteMany();
+      await tx.homepageSection.createMany({
         data: normalizedHomepageSections,
-      }),
-      prisma.slider.deleteMany(),
-      ...(normalizedHeroSlides.length > 0
-        ? [
-            prisma.slider.createMany({
-              data: normalizedHeroSlides,
-            }),
-          ]
-        : []),
-      prisma.curatedItem.deleteMany(),
-      ...(normalizedCuratedItems.length > 0
-        ? [
-            prisma.curatedItem.createMany({
-              data: normalizedCuratedItems,
-            }),
-          ]
-        : []),
-      ...normalizedShopPages.map((page) =>
-        prisma.shopPage.upsert({
+      });
+
+      await tx.slider.deleteMany();
+
+      if (normalizedHeroSlides.length > 0) {
+        await tx.slider.createMany({
+          data: normalizedHeroSlides,
+        });
+      }
+
+      await tx.curatedItem.deleteMany();
+
+      if (normalizedCuratedItems.length > 0) {
+        await tx.curatedItem.createMany({
+          data: normalizedCuratedItems,
+        });
+      }
+
+      for (const page of normalizedShopPages) {
+        const shopPage = await tx.shopPage.upsert({
           where: { slug: page.slug },
           update: {
             title: page.title,
@@ -446,22 +573,6 @@ export async function PUT(request: Request) {
             heroCtaLabel: page.heroCtaLabel,
             heroCtaHref: page.heroCtaHref,
             resultCount: page.resultCount,
-            features: page.features.length > 0
-              ? {
-                  deleteMany: {},
-                  create: page.features,
-                }
-              : {
-                  deleteMany: {},
-                },
-            products: page.products.length > 0
-              ? {
-                  deleteMany: {},
-                  create: page.products,
-                }
-              : {
-                  deleteMany: {},
-                },
           },
           create: {
             slug: page.slug,
@@ -474,26 +585,16 @@ export async function PUT(request: Request) {
             heroCtaLabel: page.heroCtaLabel,
             heroCtaHref: page.heroCtaHref,
             resultCount: page.resultCount,
-            ...(page.features.length > 0
-              ? {
-                  features: {
-                    create: page.features,
-                  },
-                }
-              : {}),
-            ...(page.products.length > 0
-              ? {
-                  products: {
-                    create: page.products,
-                  },
-                }
-              : {}),
           },
-        }),
-      ),
-    ];
+          select: {
+            id: true,
+          },
+        });
 
-    await prisma.$transaction(transactionOperations);
+        await replaceStorefrontShopPageFeatures(tx, shopPage.id, page.features);
+        await syncStorefrontShopPageProducts(tx, shopPage.id, page.products);
+      }
+    });
 
     revalidatePath("/");
     revalidatePath("/admin/dashboard");

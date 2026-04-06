@@ -1,5 +1,6 @@
 import { Twilio } from 'twilio';
 import { getAutomationSetting } from './automation/settings';
+import { isTwilioWhatsAppSandboxNumber, normalizePhoneNumber } from '@/lib/phone';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -14,24 +15,33 @@ export interface WhatsAppMessage {
 }
 
 export async function sendWhatsAppMessage(message: WhatsAppMessage) {
+  const normalizedFrom = normalizePhoneNumber(whatsappNumber ?? "");
+  const normalizedTo = normalizePhoneNumber(message.to);
+  const sandboxHint = isTwilioWhatsAppSandboxNumber(normalizedFrom)
+    ? "Twilio WhatsApp Sandbox is configured. Make sure the recipient joined the sandbox, and remember free-form messages only work inside the 24-hour service window after that join/reply."
+    : undefined;
+
   // Check if WhatsApp notifications are enabled
   const whatsappEnabled = await getAutomationSetting('whatsapp_notifications_enabled');
   if (!whatsappEnabled?.isEnabled) {
     console.log('WhatsApp notifications disabled, skipping message to:', message.to);
-    return { success: false, error: 'WhatsApp notifications disabled' };
+    return { success: false, error: 'WhatsApp notifications disabled', hint: sandboxHint };
   }
 
-  if (!twilio || !whatsappNumber) {
+  if (!normalizedTo) {
+    return { success: false, error: 'Recipient phone number is missing or invalid.', hint: sandboxHint };
+  }
+
+  if (!twilio || !normalizedFrom) {
     console.warn('Twilio not configured. WhatsApp message not sent:', message.to);
-    return { success: false, error: 'WhatsApp service not configured' };
+    return { success: false, error: 'WhatsApp service not configured', hint: sandboxHint };
   }
 
   try {
-    // Ensure phone number starts with whatsapp:
-    const to = message.to.startsWith('whatsapp:') ? message.to : `whatsapp:${message.to}`;
+    const to = `whatsapp:${normalizedTo}`;
 
     const result = await twilio.messages.create({
-      from: `whatsapp:${whatsappNumber}`,
+      from: `whatsapp:${normalizedFrom}`,
       to,
       body: message.body,
       ...(message.mediaUrl && message.mediaUrl.length > 0 && {
@@ -39,10 +49,20 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage) {
       })
     });
 
-    return { success: true, id: result.sid };
+    return {
+      success: true,
+      id: result.sid,
+      normalizedTo,
+      hint: sandboxHint,
+    };
   } catch (error) {
     console.error('WhatsApp send failed:', error);
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      hint: sandboxHint,
+      normalizedTo,
+    };
   }
 }
 

@@ -17,8 +17,9 @@ export function generateMetadata({ searchParams }: SearchPageProps): Metadata {
   };
 }
 
-export default function SearchPage({ searchParams }: SearchPageProps) {
-  const query = typeof searchParams.q === "string" ? searchParams.q : "";
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const params = await searchParams;
+  const query = typeof params.q === "string" ? params.q : "";
 
   return (
     <div className="min-h-screen bg-gray-50">

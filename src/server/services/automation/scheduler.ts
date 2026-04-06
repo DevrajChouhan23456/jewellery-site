@@ -23,7 +23,7 @@ class AutomationScheduler {
         await createAlert({
           type: 'SYSTEM_ERROR',
           title: 'Inventory Check Failed',
-          message: `Error: ${error.message}`,
+          message: `Error: ${error instanceof Error ? error.message : String(error)}`,
           priority: 'HIGH'
         });
       }
@@ -41,7 +41,7 @@ class AutomationScheduler {
         await createAlert({
           type: 'SYSTEM_ERROR',
           title: 'Cart Recovery Failed',
-          message: `Error: ${error.message}`,
+          message: `Error: ${error instanceof Error ? error.message : String(error)}`,
           priority: 'HIGH'
         });
       }
@@ -59,7 +59,7 @@ class AutomationScheduler {
         await createAlert({
           type: 'SYSTEM_ERROR',
           title: 'Dynamic Pricing Failed',
-          message: `Error: ${error.message}`,
+          message: `Error: ${error instanceof Error ? error.message : String(error)}`,
           priority: 'HIGH'
         });
       }
@@ -82,9 +82,7 @@ class AutomationScheduler {
   }
 
   private scheduleJob(name: string, cronExpression: string, job: () => Promise<void>) {
-    const task = cron.schedule(cronExpression, job, {
-      scheduled: false // Don't start immediately
-    });
+    const task = cron.schedule(cronExpression, job);
 
     this.jobs.set(name, task);
     task.start();

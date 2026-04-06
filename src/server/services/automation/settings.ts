@@ -15,24 +15,35 @@ export async function getAutomationSetting(key: string) {
   return setting;
 }
 
-export async function setAutomationSetting(setting: AutomationSetting) {
+export async function setAutomationSetting(setting: AutomationSetting, retries = 3) {
   const { key, value, description, isEnabled = true } = setting;
 
-  return await prisma.automationSettings.upsert({
-    where: { key },
-    update: {
-      value,
-      description,
-      isEnabled,
-      updatedAt: new Date()
-    },
-    create: {
-      key,
-      value,
-      description,
-      isEnabled
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await prisma.automationSettings.upsert({
+        where: { key },
+        update: {
+          value,
+          description,
+          isEnabled,
+          updatedAt: new Date()
+        },
+        create: {
+          key,
+          value,
+          description,
+          isEnabled
+        }
+      });
+    } catch (error: any) {
+      if (error.code === 'P2034' && attempt < retries) {
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+        continue;
+      }
+      throw error;
     }
-  });
+  }
 }
 
 export async function updateLastExecuted(key: string) {

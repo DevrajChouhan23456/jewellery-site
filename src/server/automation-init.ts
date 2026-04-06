@@ -1,5 +1,6 @@
 import { automationScheduler } from "@/server/services/automation/scheduler";
 import { initializeDefaultSettings } from "@/server/services/automation/settings";
+import { registerOrderNotificationListeners } from "@/server/event-listeners/order-notifications";
 
 // Initialize automation system
 export async function initializeAutomation() {
@@ -8,6 +9,9 @@ export async function initializeAutomation() {
 
     // Initialize default settings
     await initializeDefaultSettings();
+
+    // Register event listeners for order notifications
+    registerOrderNotificationListeners();
 
     // Start the scheduler
     automationScheduler.start();

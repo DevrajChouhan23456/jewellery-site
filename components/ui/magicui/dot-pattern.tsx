@@ -75,12 +75,13 @@ export function DotPattern({
   const id = useId();
   const containerRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const dotsRef = useRef<Array<{ x: number; y: number; delay: number; duration: number }>>([]);
 
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        setDimensions({ width, height });
+        const { width: w, height: h } = containerRef.current.getBoundingClientRect();
+        setDimensions({ width: w, height: h });
       }
     };
 
@@ -89,23 +90,37 @@ export function DotPattern({
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  const dots = Array.from(
-    {
-      length:
-        Math.ceil(dimensions.width / width) *
-        Math.ceil(dimensions.height / height),
-    },
-    (_, i) => {
-      const col = i % Math.ceil(dimensions.width / width);
-      const row = Math.floor(i / Math.ceil(dimensions.width / width));
-      return {
-        x: col * width + cx,
-        y: row * height + cy,
-        delay: Math.random() * 5,
-        duration: Math.random() * 3 + 2,
-      };
-    },
-  );
+  // Generate dots with stable random values using a seeded approach
+  useEffect(() => {
+    if (dimensions.width === 0 || dimensions.height === 0) return;
+    
+    const newDots = Array.from(
+      {
+        length:
+          Math.ceil(dimensions.width / width) *
+          Math.ceil(dimensions.height / height),
+      },
+      (_, i) => {
+        const col = i % Math.ceil(dimensions.width / width);
+        const row = Math.floor(i / Math.ceil(dimensions.width / width));
+        // Use a seeded random function based on index to ensure consistency
+        const seed = i * 12.9898;
+        const delay = (Math.sin(seed) * 0.5 + 0.5) * 5;
+        const duration = (Math.sin(seed + 1.233) * 0.5 + 0.5) * 3 + 2;
+        
+        return {
+          x: col * width + cx,
+          y: row * height + cy,
+          delay,
+          duration,
+        };
+      },
+    );
+    
+    dotsRef.current = newDots;
+  }, [dimensions.width, dimensions.height, width, height, cx, cy]);
+
+  const dots = dotsRef.current;
 
   return (
     <svg

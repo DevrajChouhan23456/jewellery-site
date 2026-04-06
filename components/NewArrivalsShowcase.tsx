@@ -39,6 +39,8 @@ export default function NewArrivalsShowcase({
                 src={itemLeft.image || "/images/sbg-women.jpg"}
                 alt={itemLeft.title}
                 fill
+                sizes="(max-width: 768px) 100vw, 45vw"
+                loading="eager"
                 className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
@@ -72,6 +74,7 @@ export default function NewArrivalsShowcase({
                   src={itemRightTop.image || "/images/sbg-men.webp"}
                   alt={itemRightTop.title}
                   fill
+                  sizes="(max-width: 768px) 100vw, 55vw"
                   className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
@@ -96,6 +99,7 @@ export default function NewArrivalsShowcase({
                 src={itemRightBottom?.image || "/images/sbg-kids.webp"}
                 alt={itemRightBottom?.title || "More Collections"}
                 fill
+                sizes="(max-width: 768px) 100vw, 55vw"
                 className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105 opacity-80 mix-blend-luminosity"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-8 bg-black/10 group-hover:bg-black/0 transition-colors duration-500">

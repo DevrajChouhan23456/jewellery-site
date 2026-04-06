@@ -12,7 +12,7 @@ import {
   parseCheckoutOrderMetadata,
 } from "@/server/orders/utils";
 import { getCheckoutCartSnapshot } from "@/server/services/checkout";
-import { posthogEvents } from "@/lib/posthog-analytics";
+import { posthogEvents } from "@/lib/posthog-events";
 
 type PaymentServiceResult<T> =
   | {
@@ -201,8 +201,15 @@ export async function createRazorpayPaymentOrder(input: {
       },
     });
 
-    // Track payment initiation
-    posthogEvents.trackPaymentInitiated(order.id, totals.totalAmount / 100, 'razorpay');
+    try {
+      posthogEvents.trackPaymentInitiated(
+        order.id,
+        totals.totalAmount / 100,
+        "razorpay",
+      );
+    } catch (analyticsError) {
+      console.error("Failed to track payment initiation:", analyticsError);
+    }
 
     return {
       data: {
@@ -317,8 +324,8 @@ export async function verifyRazorpayPayment(input: {
         }
       });
 
-      // Persist idempotency record for this successful payment
-      await redis.setex(idempotencyKey, 24 * 60 * 60, "1");
+      // Persist idempotency record for this successful payment (120 days for chargeback window)
+      await redis.setex(idempotencyKey, 120 * 24 * 60 * 60, "1");
 
       if (order.cartId) {
         await tx.cartItem.deleteMany({
@@ -334,43 +341,12 @@ export async function verifyRazorpayPayment(input: {
         });
       }
 
-      // Emit event and send notifications asynchronously (don't block payment verification)
+      // Emit event for async notification handlers
+      // Note: Event listeners must be registered and handle errors properly
       eventBus.emit("order.paid", {
         orderId: updatedOrder.id,
         userId: input.userId,
         paymentMethod: "razorpay",
-      });
-
-      setImmediate(async () => {
-        try {
-          // Send email confirmation
-          if (updatedOrder.user?.email) {
-            await sendOrderConfirmationEmail(updatedOrder.user.email, {
-              orderNumber: updatedOrder.orderNumber,
-              totalAmount: updatedOrder.totalAmount,
-              status: updatedOrder.status,
-              items: updatedOrder.items
-            });
-          }
-
-          // Send WhatsApp confirmation
-          if (updatedOrder.user?.phone) {
-            await sendOrderConfirmationWhatsApp(updatedOrder.user.phone, {
-              orderNumber: updatedOrder.orderNumber,
-              totalAmount: updatedOrder.totalAmount,
-              status: updatedOrder.status
-            });
-          }
-
-          // Track successful payment in PostHog
-          posthogEvents.trackPaymentSuccess(updatedOrder.id, updatedOrder.totalAmount / 100, 'razorpay');
-          posthogEvents.trackCheckout(updatedOrder.id, updatedOrder.totalAmount / 100, updatedOrder.items.length, 'razorpay');
-          posthogEvents.trackOrderStatusChange(updatedOrder.id, updatedOrder.status);
-
-        } catch (error) {
-          console.error("Failed to send order notifications:", error);
-          // Don't fail the payment verification if notifications fail
-        }
       });
 
       return updatedOrder;

@@ -63,7 +63,7 @@ export function DemandPrediction({
             <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-stone-600">Today's Orders</p>
+                  <p className="text-sm font-medium text-stone-600">Today&apos;s Orders</p>
                   <p className="text-2xl font-bold text-stone-950">{latestData?.orders || 0}</p>
                 </div>
                 {latestData && (

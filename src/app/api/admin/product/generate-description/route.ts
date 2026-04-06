@@ -3,9 +3,9 @@ import OpenAI from "openai";
 
 import { requireAdminApiAccess } from "@/server/auth/admin";
 
-const openai = new OpenAI({
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+}) : null;
 
 export async function POST(req: Request) {
   const unauthorized = await requireAdminApiAccess();
@@ -22,6 +22,13 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Missing required fields: name, material, type, category" },
         { status: 400 }
+      );
+    }
+
+    if (!openai) {
+      return NextResponse.json(
+        { error: "OpenAI API key not configured" },
+        { status: 500 }
       );
     }
 

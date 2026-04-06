@@ -18,6 +18,7 @@ type ProductRow = {
   type: string;
   images: string;
   stock?: string;
+  size?: string;
 };
 
 type ParsedProduct = {
@@ -30,6 +31,7 @@ type ParsedProduct = {
   type: string;
   images: string[];
   stock: number;
+  size: string | null;
 };
 
 type ValidationError = {
@@ -138,6 +140,7 @@ export default function BulkProductUpload({ onClose }: { onClose: () => void }) 
           type,
           images,
           stock,
+          size: row.size?.trim() || null,
         });
       } catch (error) {
         validationErrors.push({ row: rowNum, field: 'general', message: 'Invalid row data' });

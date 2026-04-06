@@ -95,9 +95,9 @@ export default function SearchResults({ query }: SearchResultsProps) {
   if (products.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">No products found for "{query}"</p>
+        <p className="text-gray-500">No products found for &quot;{query}&quot;</p>
         <p className="text-sm text-gray-400 mt-2">
-          Try searching for different keywords like "gold", "diamond", or "necklace"
+          Try searching for different keywords like &quot;gold&quot;, &quot;diamond&quot;, or &quot;necklace&quot;
         </p>
       </div>
     );

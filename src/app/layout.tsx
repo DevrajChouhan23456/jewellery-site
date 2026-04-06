@@ -26,9 +26,11 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <Providers>
-          <ClientLayout>
-            {children}
-          </ClientLayout>
+          <SiteShell>
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+          </SiteShell>
         </Providers>
       </body>
     </html>

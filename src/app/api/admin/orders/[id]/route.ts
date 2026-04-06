@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/lib/auth";
+import { requireAdminApiAccess } from "@/server/auth/admin";
 import { updateOrderStatus } from "@/server/services/admin/orders";
 
 export async function PATCH(
@@ -9,10 +8,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const unauthorized = await requireAdminApiAccess();
 
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (unauthorized) {
+      return unauthorized;
     }
 
     const { id } = await params;

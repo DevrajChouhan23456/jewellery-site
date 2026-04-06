@@ -36,7 +36,6 @@ export default function CuratedSection({ section, items }: CuratedSectionProps) 
 
   useEffect(() => {
     if (!emblaApi) return;
-    onSelect();
     emblaApi.on("select", onSelect);
     emblaApi.on("reInit", onSelect);
   }, [emblaApi, onSelect]);
@@ -90,6 +89,7 @@ export default function CuratedSection({ section, items }: CuratedSectionProps) 
                       src={item.image || "/images/sbg-women.jpg"}
                       alt={item.title}
                       fill
+                      sizes="(max-width: 768px) 80vw, (max-width: 1024px) 40vw, 25vw"
                       className="object-cover"
                     />
                     
@@ -122,6 +122,7 @@ export default function CuratedSection({ section, items }: CuratedSectionProps) 
                                   src={item.image || "/images/sbg-women.jpg"}
                                   alt={item.title}
                                   fill
+                                  sizes="40px"
                                   className="object-cover"
                                 />
                               </div>

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/lib/auth";
+import { requireAdminApiAccess } from "@/server/auth/admin";
 import { getAdminOrders } from "@/server/services/admin/orders";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const unauthorized = await requireAdminApiAccess();
+
+    if (unauthorized) {
+      return unauthorized;
     }
 
     const url = new URL(request.url);

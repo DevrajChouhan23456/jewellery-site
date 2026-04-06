@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getZodErrorMessage, parseJsonBody } from "@/lib/api/validation";
-import { auth } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import prisma from "@/lib/prisma";
+import { getAdminSession } from "@/server/auth/admin";
 
 const optionalUsernameSchema = z.preprocess(
   (value) => {
@@ -31,9 +31,9 @@ const updateAdminCredentialsSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const session = await auth();
+  const session = await getAdminSession();
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 

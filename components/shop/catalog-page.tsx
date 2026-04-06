@@ -39,6 +39,27 @@ function formatINR(price: number) {
   return `₹ ${price.toLocaleString("en-IN")}`;
 }
 
+function getStableValue(input: string) {
+  let hash = 0;
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash * 31 + input.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
+function getProductSignals(product: CatalogProduct, index: number) {
+  const seed = getStableValue(`${product.id}-${product.slug ?? "product"}-${index}`);
+
+  return {
+    showLowStock: seed % 5 === 0,
+    lowStockCount: (seed % 5) + 1,
+    showViewerCount: seed % 7 === 0,
+    viewerCount: (seed % 20) + 5,
+  };
+}
+
 export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -338,36 +359,39 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 <AnimatePresence>
-                  {products.map((product, index) => (
+                  {products.map((product, index) => {
+                    const signals = getProductSignals(product, index);
+
+                    return (
                     <motion.div
                       key={product.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300"
+                      className="group relative rounded-2xl bg-white shadow-sm transition-all duration-300 hover:shadow-xl"
                     >
                       <Link href={`/product/${product.slug}`} className="block">
                         {/* ❤️ Wishlist */}
-                        <button className="absolute top-3 right-3 z-10 bg-white p-2 rounded-full shadow hover:shadow-md transition-shadow">
+                        <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-full bg-white p-2 shadow transition-shadow">
                           <Heart className="size-4" />
-                        </button>
+                        </span>
 
                         {/* 🔥 FOMO ELEMENTS */}
                         {/* Low Stock Alert */}
-                        {Math.random() > 0.7 && (
-                          <div className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                            Only {Math.floor(Math.random() * 5) + 1} left!
+                        {signals.showLowStock ? (
+                          <div className="absolute left-3 top-3 z-10 rounded-full bg-red-500 px-2 py-1 text-xs font-medium text-white">
+                            Only {signals.lowStockCount} left!
                           </div>
-                        )}
+                        ) : null}
 
                         {/* Live Viewers */}
-                        {Math.random() > 0.8 && (
-                          <div className="absolute top-12 left-3 z-10 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                        {signals.showViewerCount ? (
+                          <div className="absolute left-3 top-12 z-10 flex items-center gap-1 rounded-full bg-green-500 px-2 py-1 text-xs text-white">
                             <Users className="size-3" />
-                            {Math.floor(Math.random() * 20) + 5} viewing
+                            {signals.viewerCount} viewing
                           </div>
-                        )}
+                        ) : null}
 
                         {/* IMAGE */}
                         <div className="relative h-64 bg-[#f8f8f8] rounded-t-2xl overflow-hidden">
@@ -375,6 +399,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                             src={product.imageUrl || "/placeholder.jpg"}
                             alt={product.name}
                             fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
                             className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                           />
                           {/* Shimmer effect */}
@@ -405,7 +430,8 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                         </div>
                       </Link>
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </AnimatePresence>
               </div>
             )}

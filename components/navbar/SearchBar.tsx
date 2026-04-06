@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Camera, Mic, Search, Loader2 } from "lucide-react";
 import { SearchProduct } from "@/lib/products";
-import { posthogEvents } from "@/lib/posthog-analytics";
+import { posthogEvents } from "@/lib/posthog-events";
 
 type SearchBarProps = {
   variant: "desktop" | "mobile";

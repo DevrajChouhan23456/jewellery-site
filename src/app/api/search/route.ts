@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     // Try to get from cache first
     const cachedResult = await redis.get(cacheKey);
     if (cachedResult) {
-      return NextResponse.json(JSON.parse(cachedResult));
+      return NextResponse.json(JSON.parse(cachedResult as string));
     }
 
     let result;
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
 
       const finalProducts = rankedProducts
         .slice(0, limit)
-        .map(({ embeddings, _count, ...product }) => product);
+        .map(({ embeddings, ...product }) => product);
 
       const result = {
         products: finalProducts,

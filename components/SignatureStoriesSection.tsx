@@ -106,7 +106,7 @@ export default function SignatureStoriesSection({ stories }: SignatureStoriesSec
   };
 
   return (
-    <section className="bg-[#f6f6f6] py-14">
+    <section className="py-14">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-serif text-[#2f2a25] md:text-4xl">
@@ -115,14 +115,14 @@ export default function SignatureStoriesSection({ stories }: SignatureStoriesSec
         </div>
 
         <div
-          className="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-3xl bg-[#ececec] px-10"
+          className="relative flex min-h-[380px] items-center justify-center overflow-hidden rounded-[2rem] px-6 py-8 sm:px-10"
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
         >
           <button
             type="button"
             aria-label="Previous stories"
-            className="absolute left-4 top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-[#7f7f7f] shadow-sm"
+            className="absolute left-4 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-[#5d5d5d] shadow-sm transition hover:bg-white"
             onClick={showPrev}
           >
             <ChevronLeft className="size-5" />
@@ -130,30 +130,34 @@ export default function SignatureStoriesSection({ stories }: SignatureStoriesSec
           <button
             type="button"
             aria-label="Next stories"
-            className="absolute right-4 top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-[#7f7f7f] shadow-sm"
+            className="absolute right-4 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-[#5d5d5d] shadow-sm transition hover:bg-white"
             onClick={showNext}
           >
             <ChevronRight className="size-5" />
           </button>
 
-          <div className="relative h-[340px] w-full max-w-[860px]">
+          <div className="relative h-[360px] w-full max-w-[940px]">
             {cards.map((story, index) => {
               const relative = getRelativePosition(index);
               if (relative === null) return null;
               const isActive = relative === 0;
-              const offsetX = relative * 112;
-              const scale = isActive ? 1 : relative === 1 || relative === -1 ? 0.89 : 0.82;
-              const opacity = isActive ? 1 : relative === 2 || relative === -2 ? 0.68 : 0.82;
+              const offsetX = relative * 140;
+              const scale = isActive ? 1 : relative === 1 || relative === -1 ? 0.92 : 0.84;
+              const opacity = isActive ? 1 : relative === 2 || relative === -2 ? 0.6 : 0.8;
               const zIndex = isActive ? 30 : 20 - Math.abs(relative);
               const tone = toneClasses[(index + cards.length) % toneClasses.length];
+              const width = isActive ? 240 : relative === 1 || relative === -1 ? 195 : 160;
+              const height = isActive ? 360 : 280;
 
               return (
                 <article
                   key={story.id}
-                  className={`absolute left-1/2 top-1/2 h-[265px] w-[150px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-linear-to-b ${tone} text-white shadow-lg transition-all duration-500 ${
-                    isActive ? "h-[340px] w-[190px]" : ""
+                  className={`absolute left-1/2 top-1/2 overflow-hidden rounded-[2rem] text-white shadow-2xl transition-all duration-500 ease-out ${
+                    isActive ? "ring-1 ring-white/20" : ""
                   }`}
                   style={{
+                    width,
+                    height,
                     transform: `translate(calc(-50% + ${offsetX}px), -50%) scale(${scale})`,
                     opacity,
                     zIndex,
@@ -166,16 +170,20 @@ export default function SignatureStoriesSection({ stories }: SignatureStoriesSec
                       fill
                       className="object-cover"
                     />
-                  ) : null}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/65 via-black/15 to-transparent" />
-                  <div className="absolute inset-x-0 top-0 p-3">
-                    <p className="line-clamp-1 text-xs font-semibold tracking-wide text-white/95">
+                  ) : (
+                    <div className={`h-full w-full bg-gradient-to-b ${tone}`} />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  <div className="absolute inset-x-0 top-4 px-4">
+                    <p className="line-clamp-1 text-xs font-semibold tracking-[0.22em] text-white/90">
                       {story.title}
                     </p>
                   </div>
                   {isActive ? (
-                    <div className="absolute inset-x-0 bottom-0 rounded-b-2xl bg-black/45 p-3">
-                      <p className="line-clamp-1 text-sm font-medium">{story.subtitle}</p>
+                    <div className="absolute inset-x-0 bottom-0 rounded-b-[1.75rem] bg-black/45 p-4 backdrop-blur-sm">
+                      <p className="line-clamp-2 text-sm font-medium text-white/95">
+                        {story.subtitle}
+                      </p>
                     </div>
                   ) : null}
                 </article>
@@ -198,15 +206,19 @@ export default function SignatureStoriesSection({ stories }: SignatureStoriesSec
           ))}
         </div>
 
-        <div className="mx-auto -mt-7 flex w-full max-w-xl items-center justify-between gap-3 rounded-full border border-[#e8d4b2] bg-white px-4 py-2 shadow-sm">
-          <span className="rounded-full bg-[#f0d58f] px-3 py-1 text-[11px] font-semibold uppercase text-[#6f5330]">
+        <div className="mx-auto -mt-8 flex w-full max-w-3xl items-center justify-between gap-4 rounded-[1.75rem] border border-[#dfd3c5] bg-white/95 px-4 py-3 shadow-[0_15px_50px_-35px_rgba(0,0,0,0.25)] backdrop-blur-sm sm:px-6">
+          <div className="flex items-center gap-3 rounded-full bg-[#fff3d9] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7b592f] shadow-sm">
             New
-          </span>
-          <p className="flex-1 text-center text-sm text-[#604c3a]">
+          </div>
+          <div className="flex-1 text-center text-sm font-medium text-[#5a4735] sm:text-base">
             Welcome back! Continue your wedding journey with us.
-          </p>
-          <Link href={cards[activeIndex]?.href ?? "/shop/diamond"} className="text-[#7e2630]">
-            <ArrowRight className="size-4" />
+          </div>
+          <Link
+            href={cards[activeIndex]?.href ?? "/shop/diamond"}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-[#7e2b30] px-4 text-sm font-semibold text-white transition hover:bg-[#962f32]"
+          >
+            Explore
+            <ArrowRight className="ml-2 size-4" />
           </Link>
         </div>
       </div>

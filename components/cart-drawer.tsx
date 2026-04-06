@@ -91,7 +91,7 @@ export default function CartDrawer() {
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-blue-800">
                     <Tag className="size-4" />
-                    You're saving ₹{Math.floor(subtotal * 0.1).toLocaleString()} on this order
+                    You&apos;re saving ₹{Math.floor(subtotal * 0.1).toLocaleString()} on this order
                   </div>
                 </div>
               )}

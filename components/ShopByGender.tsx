@@ -43,6 +43,7 @@ export default function ShopByGender({
                   src={item.image ?? "/images/sbg-women.jpg"}
                   alt={item.title}
                   fill
+                  sizes="(max-width: 1024px) 100vw, 33vw"
                   className="object-cover transition duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />

@@ -3,11 +3,11 @@ import { createAlert } from "./alerts";
 import { getAutomationSetting } from "./settings";
 import { sendCartRecoveryEmail } from "../email";
 import { sendCartRecoveryWhatsApp } from "../whatsapp";
-import { posthogEvents } from "@/lib/posthog-analytics";
+import { posthogEvents } from "@/lib/posthog-events";
 import { randomBytes } from "crypto";
 
 export async function findAbandonedCarts() {
-  const recoveryDelayHours = (await getAutomationSetting('cart_recovery_delay_hours'))?.value || 24;
+  const recoveryDelayHours = Number((await getAutomationSetting('cart_recovery_delay_hours'))?.value) || 24;
   const cutoffDate = new Date(Date.now() - recoveryDelayHours * 60 * 60 * 1000);
 
   const abandonedCarts = await prisma.cart.findMany({
@@ -21,7 +21,7 @@ export async function findAbandonedCarts() {
     },
     include: {
       user: {
-        select: { id: true, email: true, name: true }
+        select: { id: true, email: true, name: true, phone: true }
       },
       items: {
         include: {

@@ -2,6 +2,15 @@ import type { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
 
+type TrendingProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  salesChange: number;
+  images: string[];
+};
+
 const adminOrderListSelect = {
   id: true,
   orderNumber: true,
@@ -150,10 +159,10 @@ export async function getAdminOrders({
     ...order,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
-  })) as typeof orders & { createdAt: string; updatedAt: string }[];
+  }));
 
   return {
-    orders: transformedOrders,
+    orders: transformedOrders as Array<Omit<typeof orders[number], 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }>,
     pagination: {
       page,
       limit,
@@ -542,7 +551,7 @@ export async function getDemandPrediction(days: number = 7) {
   const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
   // Get daily order counts
-  const dailyOrders = await prisma.$queryRaw`
+  const dailyOrders = await (prisma as any).$queryRaw`
     SELECT
       DATE(createdAt) as date,
       COUNT(*) as orders

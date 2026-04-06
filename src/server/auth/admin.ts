@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 
+import { buildAdminAccessPath } from "@/lib/admin-gate";
 import { auth } from "@/lib/auth";
 
 type AdminSession = NonNullable<Awaited<ReturnType<typeof auth>>>;
@@ -19,7 +20,7 @@ export async function requireAdminPageAccess(callbackUrl: string) {
   const session = await auth();
 
   if (!session) {
-    redirect(`/admin/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    redirect(buildAdminAccessPath(callbackUrl));
   }
 
   if (session.user.role !== "ADMIN") {
@@ -30,10 +31,14 @@ export async function requireAdminPageAccess(callbackUrl: string) {
 }
 
 export async function requireAdminApiAccess() {
-  const session = await getAdminSession();
+  const session = await auth();
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   return null;

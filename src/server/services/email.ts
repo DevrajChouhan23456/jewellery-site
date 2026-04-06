@@ -37,7 +37,7 @@ export async function sendEmail(data: EmailData) {
     return { success: true, id: result.data?.id };
   } catch (error) {
     console.error('Email send failed:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 

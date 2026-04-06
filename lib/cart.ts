@@ -192,7 +192,7 @@ async function buildCartResponse(
   ]);
 
   const shopPageProductMap = new Map(
-    shopPageProducts.map((product) => [
+    shopPageProducts.map((product: typeof shopPageProducts[0]) => [
       product.id,
       {
         imageUrl: product.imageUrl ?? product.images[0] ?? null,

@@ -426,6 +426,114 @@ const shopPageSeed = [
   },
 ];
 
+function buildSeededShopPageProduct(
+  page: (typeof shopPageSeed)[number],
+  product: (typeof shopPageSeed)[number]["products"][number],
+  index: number,
+) {
+  return {
+    slug: toProductSlug(product.name),
+    name: product.name,
+    price: product.price,
+    imageUrl: product.imageUrl,
+    images: product.imageUrl
+      ? [product.imageUrl, product.imageUrl, product.imageUrl]
+      : [],
+    description: `The ${product.name} is a stunning piece of fine jewellery crafted to perfection. Whether purchased as a celebration gift or a personal milestone, its timeless silhouette and luminous finish endure across generations.`,
+    specifications: {
+      "Metal Purity": "18KT Gold",
+      "Gross Weight": `${(Math.random() * 5 + 2).toFixed(2)} g`,
+      Theme: page.title,
+      Occasion: "Everyday, Celebration, Gifting",
+    },
+    badge: product.badge ?? null,
+    lowStockText: product.lowStockText ?? null,
+    order: product.order ?? index + 1,
+    category: "jewellery",
+    material: "gold",
+    type: "ring",
+  };
+}
+
+async function replaceShopPageFeatures(
+  shopPageId: string,
+  features: (typeof shopPageSeed)[number]["features"],
+) {
+  await prisma.shopPageFeature.deleteMany({
+    where: { shopPageId },
+  });
+
+  if (features.length === 0) {
+    return;
+  }
+
+  await prisma.shopPageFeature.createMany({
+    data: features.map((feature) => ({
+      ...feature,
+      shopPageId,
+    })),
+  });
+}
+
+async function syncShopPageProducts(page: (typeof shopPageSeed)[number], shopPageId: string) {
+  const retainedProductIds: string[] = [];
+
+  for (const [index, product] of page.products.entries()) {
+    const productData = buildSeededShopPageProduct(page, product, index);
+    const persistedProduct = await prisma.shopPageProduct.upsert({
+      where: { slug: productData.slug },
+      update: {
+        ...productData,
+        shopPageId,
+      },
+      create: {
+        ...productData,
+        shopPageId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    retainedProductIds.push(persistedProduct.id);
+  }
+
+  const staleProducts = await prisma.shopPageProduct.findMany({
+    where:
+      retainedProductIds.length > 0
+        ? {
+            shopPageId,
+            id: { notIn: retainedProductIds },
+          }
+        : { shopPageId },
+    select: {
+      id: true,
+      cartItems: {
+        select: { id: true },
+        take: 1,
+      },
+      orderItems: {
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
+
+  const deletableProductIds = staleProducts
+    .filter((product) => product.cartItems.length === 0 && product.orderItems.length === 0)
+    .map((product) => product.id);
+
+  if (deletableProductIds.length === 0) {
+    return;
+  }
+
+  await prisma.shopPageProduct.deleteMany({
+    where: {
+      id: { in: deletableProductIds },
+    },
+  });
+}
+
 async function seedShopPages() {
   for (const page of shopPageSeed) {
     const shopPage = await prisma.shopPage.upsert({
@@ -455,36 +563,8 @@ async function seedShopPages() {
       },
     });
 
-    await prisma.shopPageFeature.deleteMany({
-      where: { shopPageId: shopPage.id },
-    });
-    await prisma.shopPageProduct.deleteMany({
-      where: { shopPageId: shopPage.id },
-    });
-
-    await prisma.shopPageFeature.createMany({
-      data: page.features.map((feature) => ({
-        ...feature,
-        shopPageId: shopPage.id,
-      })),
-    });
-
-    await prisma.shopPageProduct.createMany({
-      data: page.products.map((product, index) => ({
-        ...product,
-        slug: toProductSlug(product.name),
-        order: product.order ?? index + 1,
-        shopPageId: shopPage.id,
-        images: product.imageUrl ? [product.imageUrl, product.imageUrl, product.imageUrl] : [],
-        description: `The ${product.name} is a stunning piece of fine jewellery crafted to perfection. Whether purchased as a celebration gift or a personal milestone, its timeless silhouette and luminous finish endure across generations.`,
-        specifications: {
-          "Metal Purity": "18KT Gold",
-          "Gross Weight": `${(Math.random() * 5 + 2).toFixed(2)} g`,
-          "Theme": page.title,
-          "Occasion": "Everyday, Celebration, Gifting"
-        }
-      })),
-    });
+    await replaceShopPageFeatures(shopPage.id, page.features);
+    await syncShopPageProducts(page, shopPage.id);
   }
 }
 
@@ -497,11 +577,19 @@ async function main() {
     update: {
       passwordHash: hashPassword(defaultPassword),
       role: "ADMIN",
+      twoFactorEnabled: false,
+      twoFactorSecret: null,
+      twoFactorPendingSecret: null,
+      twoFactorUpdatedAt: null,
     },
     create: {
       username: defaultUsername,
       passwordHash: hashPassword(defaultPassword),
       role: "ADMIN",
+      twoFactorEnabled: false,
+      twoFactorSecret: null,
+      twoFactorPendingSecret: null,
+      twoFactorUpdatedAt: null,
     },
   });
 

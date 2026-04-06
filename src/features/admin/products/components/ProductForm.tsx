@@ -92,6 +92,8 @@ export default function ProductForm({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
+  const isEditMode = Boolean(initialProduct?.id);
+
   // Auto-save draft every 30 seconds
   useEffect(() => {
     if (isEditMode) return; // Only auto-save for new products
@@ -163,8 +165,6 @@ export default function ProductForm({
       }
     }
   }, [isEditMode]);
-
-  const isEditMode = Boolean(initialProduct?.id);
 
   function setValue<K extends keyof ProductFormValues>(key: K, nextValue: ProductFormValues[K]) {
     setValues((current) => ({

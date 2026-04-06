@@ -146,14 +146,14 @@ export async function generateProductRecommendations(userId?: string, sessionId?
     for (const rec of recommendations) {
       await prisma.recommendation.upsert({
         where: {
-          id: `${userId || sessionId}_${rec.product.id}_${Date.now()}`
+          id: `${(userId || sessionId) as string}_${rec.product.id}_${Date.now()}`
         },
         update: {},
         create: {
           userId,
           sessionId,
           productId: rec.product.id,
-          recommendedFor: userId || sessionId,
+          recommendedFor: (userId || sessionId) as string,
           score: rec.score,
           algorithm: rec.algorithm,
           context: rec.context,

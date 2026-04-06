@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Clock } from "lucide-react";
 
@@ -57,13 +57,6 @@ export function CountdownTimer({ endTime, className = "" }: CountdownTimerProps)
 
 // Hook for random FOMO timers
 export function useFomoTimer() {
-  const [showTimer, setShowTimer] = useState(false);
-
-  useEffect(() => {
-    // Show timer randomly (30% chance)
-    const shouldShow = Math.random() < 0.3;
-    setShowTimer(shouldShow);
-  }, []);
-
-  return showTimer;
+  // Always show for FOMO effect
+  return true;
 }

@@ -2,8 +2,6 @@ import type {
   CuratedItem,
   HomepageSection as HomepageSectionModel,
   Prisma,
-  ShopPageFeature,
-  ShopPageProduct,
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -47,11 +45,45 @@ export type HeroSlideContent = {
   order: number;
 };
 
+const shopPageSelect = {
+  id: true,
+  slug: true,
+  title: true,
+  subtitle: true,
+  heroEyebrow: true,
+  heroTitle: true,
+  heroDescription: true,
+  heroImageUrl: true,
+  heroCtaLabel: true,
+  heroCtaHref: true,
+  resultCount: true,
+  features: {
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      title: true,
+      imageUrl: true,
+      href: true,
+      order: true,
+    },
+  },
+  products: {
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      price: true,
+      imageUrl: true,
+      badge: true,
+      lowStockText: true,
+      order: true,
+    },
+  },
+} satisfies Prisma.ShopPageSelect;
+
 export type ShopPageRecord = Prisma.ShopPageGetPayload<{
-  include: {
-    features: true;
-    products: true;
-  };
+  select: typeof shopPageSelect;
 }>;
 export type ShopPageContent = ShopPageRecord | null;
 
@@ -239,14 +271,7 @@ export async function getStorefrontAdminData() {
       }),
       prisma.shopPage.findMany({
         orderBy: { title: "asc" },
-        include: {
-          features: {
-            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-          },
-          products: {
-            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-          },
-        },
+        select: shopPageSelect,
       }),
     ]);
 
@@ -318,14 +343,14 @@ export async function getStorefrontAdminData() {
       heroCtaLabel: page.heroCtaLabel,
       heroCtaHref: page.heroCtaHref,
       resultCount: page.resultCount,
-      features: page.features.map((feature: ShopPageFeature) => ({
+      features: page.features.map((feature) => ({
         id: feature.id,
         title: feature.title,
         imageUrl: feature.imageUrl,
         href: feature.href,
         order: feature.order,
       })),
-      products: page.products.map((product: ShopPageProduct) => ({
+      products: page.products.map((product) => ({
         id: product.id,
         name: product.name,
         price: product.price,
@@ -341,14 +366,7 @@ export async function getStorefrontAdminData() {
 export async function getShopPageData(slug: string) {
   const page = await prisma.shopPage.findUnique({
     where: { slug },
-    include: {
-      features: {
-        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-      },
-      products: {
-        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-      },
-    },
+    select: shopPageSelect,
   });
 
   // ✅ IF CMS PAGE EXISTS → USE IT

@@ -6,6 +6,8 @@ import {
   adminProductListFiltersSchema,
   createProductSchema,
   deleteProductSchema,
+  type CreateProductInput,
+  type DeleteProductInput,
   updateProductSchema,
 } from "@/features/admin/products/validation";
 
@@ -110,7 +112,7 @@ async function isSlugAvailable(slug: string, excludedProductId?: string) {
 
 export async function getAdminProductList(input: unknown) {
   const parsed = adminProductListFiltersSchema.safeParse(input);
-  const filters = parsed.success ? parsed.data : { page: 1, query: null };
+  const filters = parsed.success ? parsed.data : { page: 1, query: null, category: null, material: null, minPrice: undefined, maxPrice: undefined, stockStatus: undefined };
   const page = filters.page;
   const query = filters.query?.trim() || null;
   const skip = (page - 1) * ADMIN_PRODUCTS_PAGE_SIZE;
@@ -323,6 +325,47 @@ export async function updateAdminProduct(
   }
 }
 
+export async function deleteAdminProduct(
+  body: unknown,
+): Promise<ProductMutationResult<{ deleted: true; productId: string }>> {
+  try {
+    const parsed = deleteProductSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return validationError(
+        "Invalid product delete request.",
+        parsed.error.flatten().fieldErrors,
+      );
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: parsed.data.id },
+      select: {
+        id: true,
+        category: true,
+      },
+    });
+
+    if (!product) {
+      return failure("Product not found.", 404);
+    }
+
+    await prisma.product.delete({
+      where: { id: parsed.data.id },
+    });
+
+    revalidateProductPaths(product);
+
+    return {
+      data: { deleted: true, productId: parsed.data.id },
+      status: 200,
+    };
+  } catch (error) {
+    console.error("Failed to delete admin product:", error);
+    return failure("Unable to delete the product right now.", 500);
+  }
+}
+
 export async function createAdminProductsBulk(
   products: CreateProductInput[],
 ): Promise<ProductMutationResult<{ products: AdminProductDetail[]; created: number; skipped: number }>> {
@@ -356,8 +399,12 @@ export async function createAdminProductsBulk(
       return validationError("All products have duplicate slugs.");
     }
 
-    const createdProducts = await prisma.product.createManyAndReturn({
+    await prisma.product.createMany({
       data: validProducts,
+    });
+
+    const createdProducts = await prisma.product.findMany({
+      where: { slug: { in: validProducts.map(p => p.slug) } },
       select: adminProductDetailSelect,
     });
 

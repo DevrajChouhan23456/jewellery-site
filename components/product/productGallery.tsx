@@ -1,21 +1,37 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type ProductGalleryProps = {
   images: string[];
 };
 
 export default function ProductGallery({ images }: ProductGalleryProps) {
-  const [active, setActive] = useState(images[0] ?? "/images/product-placeholder.png");
+  const galleryImages = useMemo(() => {
+    const uniqueImages = images.filter((image, index) => {
+      return image && images.indexOf(image) === index;
+    });
+
+    return uniqueImages.length
+      ? uniqueImages
+      : ["/images/product-placeholder.png"];
+  }, [images]);
+
+  const [active, setActive] = useState(galleryImages[0]);
+
+  useEffect(() => {
+    setActive((current) =>
+      galleryImages.includes(current) ? current : galleryImages[0],
+    );
+  }, [galleryImages]);
 
   return (
     <div className="flex gap-4">
       <div className="flex flex-col gap-2">
-        {images.map((img) => (
+        {galleryImages.map((img, index) => (
           <button
-            key={img}
+            key={`${img}-${index}`}
             type="button"
             onClick={() => setActive(img)}
             className="overflow-hidden rounded transition-transform duration-300 ease-in-out hover:scale-105"

@@ -117,6 +117,7 @@ export const createProductSchema = z.object({
   type: taxonomySchema("Type"),
   size: optionalSizeSchema,
   images: imageCollectionSchema,
+  description: z.string().trim().max(1000, "Description must be 1000 characters or fewer.").optional(),
 });
 
 export const updateProductSchema = createProductSchema.extend({

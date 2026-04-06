@@ -1,7 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { AlertCircle, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Package2,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface LowStockProduct {
   id: string;
@@ -18,7 +28,7 @@ interface TrendingProduct {
   name: string;
   slug: string;
   price: number;
-  salesChange: number; // percentage change
+  salesChange: number;
   images?: string[];
 }
 
@@ -38,23 +48,116 @@ interface InventoryAlertsProps {
   salesDrops?: SalesDropAlert[];
 }
 
+function AlertListItem({
+  href,
+  image,
+  title,
+  subtitle,
+  badgeClassName,
+  badgeLabel,
+}: {
+  href: string;
+  image?: string;
+  title: string;
+  subtitle: string;
+  badgeClassName: string;
+  badgeLabel: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-[1.25rem] border border-stone-200/80 bg-white/75 p-3 transition hover:border-stone-300 hover:bg-stone-50/90"
+    >
+      <div className="relative size-12 overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
+        <Image
+          src={image || "/placeholder.jpg"}
+          alt={title}
+          fill
+          unoptimized
+          className="object-cover"
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-stone-950">{title}</p>
+        <p className="mt-1 text-xs text-stone-500">{subtitle}</p>
+      </div>
+      <Badge variant="outline" className={`rounded-full ${badgeClassName}`}>
+        {badgeLabel}
+      </Badge>
+    </Link>
+  );
+}
+
 export function InventoryAlerts({
   lowStockProducts,
   trendingProducts = [],
   salesDrops = [],
 }: InventoryAlertsProps) {
-  const totalAlerts = lowStockProducts.length + trendingProducts.length + salesDrops.length;
+  const sections = [
+    {
+      key: "stock",
+      title: "Inventory pressure",
+      description: "Products nearing or below their threshold.",
+      icon: Package2,
+      items: lowStockProducts.slice(0, 3).map((product) => ({
+        href: `/admin/products/${product.id}`,
+        image: product.images?.[0],
+        title: product.name,
+        subtitle: `${product.stock} left of ${product.lowStockThreshold} target`,
+        badgeClassName:
+          "border-rose-200 bg-rose-50 text-rose-700",
+        badgeLabel: `${product.stock} left`,
+      })),
+    },
+    {
+      key: "trending",
+      title: "Products accelerating",
+      description: "Items gaining demand quickly this week.",
+      icon: TrendingUp,
+      items: trendingProducts.slice(0, 3).map((product) => ({
+        href: `/admin/products/${product.id}`,
+        image: product.images?.[0],
+        title: product.name,
+        subtitle: "Sales momentum is climbing",
+        badgeClassName:
+          "border-emerald-200 bg-emerald-50 text-emerald-700",
+        badgeLabel: `+${product.salesChange.toFixed(1)}%`,
+      })),
+    },
+    {
+      key: "drop",
+      title: "Products cooling off",
+      description: "Items showing a notable recent drop in sales.",
+      icon: TrendingDown,
+      items: salesDrops.slice(0, 3).map((alert) => ({
+        href: `/admin/products/${alert.productId}`,
+        image: alert.images?.[0],
+        title: alert.productName,
+        subtitle: `${alert.previousSales} to ${alert.currentSales} sales`,
+        badgeClassName:
+          "border-amber-200 bg-amber-50 text-amber-700",
+        badgeLabel: `-${alert.dropPercentage.toFixed(1)}%`,
+      })),
+    },
+  ].filter((section) => section.items.length > 0);
 
-  if (totalAlerts === 0) {
+  if (sections.length === 0) {
     return (
-      <section className="overflow-hidden rounded-[2rem] border border-stone-200 bg-gradient-to-br from-green-50/50 to-emerald-50/30 px-6 py-8 sm:px-8">
-        <div className="flex items-center gap-4">
-          <div className="rounded-full bg-green-100/80 p-3">
-            <AlertCircle className="size-6 text-green-600" />
+      <section className="overflow-hidden rounded-[2rem] border border-white/70 bg-[linear-gradient(135deg,rgba(240,253,244,0.96),rgba(236,253,245,0.88))] px-6 py-7 shadow-[0_22px_70px_-50px_rgba(21,128,61,0.3)]">
+        <div className="flex items-start gap-4">
+          <div className="flex size-12 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-100 text-emerald-700">
+            <AlertTriangle className="size-5" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-green-900">All Systems Healthy</h3>
-            <p className="mt-1 text-sm text-green-700">No inventory or sales alerts at this moment.</p>
+            <Badge className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-700">
+              Healthy
+            </Badge>
+            <h2 className="mt-3 text-xl font-semibold tracking-tight text-emerald-950">
+              Operations look stable
+            </h2>
+            <p className="mt-1 text-sm text-emerald-800/80">
+              No inventory or demand alerts need attention right now.
+            </p>
           </div>
         </div>
       </section>
@@ -62,156 +165,60 @@ export function InventoryAlerts({
   }
 
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-stone-200 bg-white backdrop-blur">
-      <div className="border-b border-stone-100 px-6 py-5 sm:px-8">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-red-100/80 p-2">
-              <AlertCircle className="size-5 text-red-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-stone-950">Intelligent Alerts</h2>
-              <p className="mt-0.5 text-sm text-[var(--luxury-muted)]">
-                {totalAlerts} alert{totalAlerts !== 1 ? 's' : ''} requiring attention
-              </p>
-            </div>
+    <section className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/86 shadow-[0_22px_70px_-50px_rgba(28,25,23,0.38)] backdrop-blur">
+      <div className="flex flex-col gap-4 border-b border-stone-100 px-6 py-5 sm:px-7">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Badge
+              variant="outline"
+              className="rounded-full border-stone-200 bg-stone-50 text-stone-700"
+            >
+              Attention center
+            </Badge>
+            <h2 className="mt-3 text-xl font-semibold tracking-tight text-stone-950">
+              Intelligent alerts
+            </h2>
+            <p className="mt-1 text-sm text-stone-500">
+              Surface stock pressure, rising demand, and slipping products in one
+              place.
+            </p>
           </div>
-          <Link
-            href="/admin/alerts"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--luxury-gold-deep)] transition hover:text-stone-950"
-          >
-            View all
-            <ArrowRight className="size-4" />
-          </Link>
+          <Button asChild variant="ghost" size="sm" className="rounded-full px-3">
+            <Link href="/admin/products">
+              Review catalog
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
         </div>
       </div>
 
-      <div className="divide-y divide-stone-100">
-        {/* Low Stock Alerts */}
-        {lowStockProducts.slice(0, 3).map((product) => {
-          const stockPercentage = Math.round((product.stock / product.lowStockThreshold) * 100);
-          const isLowStock = product.stock <= product.lowStockThreshold;
+      <div className="space-y-5 px-6 py-5 sm:px-7">
+        {sections.map((section) => {
+          const Icon = section.icon;
 
           return (
-            <Link
-              key={`low-stock-${product.id}`}
-              href={`/admin/products/${product.id}`}
-              className="block py-4 px-6 sm:px-8 transition hover:bg-stone-50"
-            >
-              <div className="flex items-center gap-4">
-                <div className="size-12 flex-shrink-0 overflow-hidden rounded-lg">
-                  <img
-                    src={product.images?.[0] || "/placeholder.jpg"}
-                    alt={product.name}
-                    className="size-full object-cover"
-                  />
+            <div key={section.key} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-2xl border border-stone-200 bg-stone-50 text-stone-700">
+                  <Icon className="size-4" />
                 </div>
-
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-stone-950 truncate">
-                    {product.name}
+                <div>
+                  <h3 className="text-sm font-semibold text-stone-950">
+                    {section.title}
                   </h3>
-                  <p className="text-sm text-stone-500">
-                    Low stock: {product.stock} of {product.lowStockThreshold} units
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-24 overflow-hidden rounded-full bg-stone-200">
-                    <div
-                      className={`h-full transition-all ${isLowStock ? 'bg-red-500' : 'bg-amber-500'}`}
-                      style={{ width: `${Math.min(stockPercentage, 100)}%` }}
-                    />
-                  </div>
-                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                    isLowStock ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {stockPercentage}%
-                  </span>
+                  <p className="text-xs text-stone-500">{section.description}</p>
                 </div>
               </div>
-            </Link>
+
+              <div className="space-y-2">
+                {section.items.map((item) => (
+                  <AlertListItem key={`${section.key}-${item.href}`} {...item} />
+                ))}
+              </div>
+            </div>
           );
         })}
-
-        {/* Trending Products */}
-        {trendingProducts.slice(0, 3).map((product) => (
-          <Link
-            key={`trending-${product.id}`}
-            href={`/admin/products/${product.id}`}
-            className="block py-4 px-6 sm:px-8 transition hover:bg-stone-50"
-          >
-            <div className="flex items-center gap-4">
-              <div className="size-12 flex-shrink-0 overflow-hidden rounded-lg">
-                <img
-                  src={product.images?.[0] || "/placeholder.jpg"}
-                  alt={product.name}
-                  className="size-full object-cover"
-                />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-stone-950 truncate">
-                  {product.name}
-                </h3>
-                <p className="text-sm text-stone-500">
-                  Trending product
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <TrendingUp className="size-4 text-green-600" />
-                <span className="text-sm font-medium text-green-600">
-                  +{product.salesChange.toFixed(1)}%
-                </span>
-              </div>
-            </div>
-          </Link>
-        ))}
-
-        {/* Sales Drop Alerts */}
-        {salesDrops.slice(0, 3).map((alert) => (
-          <Link
-            key={`sales-drop-${alert.productId}`}
-            href={`/admin/products/${alert.productId}`}
-            className="block py-4 px-6 sm:px-8 transition hover:bg-stone-50"
-          >
-            <div className="flex items-center gap-4">
-              <div className="size-12 flex-shrink-0 overflow-hidden rounded-lg">
-                <img
-                  src={alert.images?.[0] || "/placeholder.jpg"}
-                  alt={alert.productName}
-                  className="size-full object-cover"
-                />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-stone-950 truncate">
-                  {alert.productName}
-                </h3>
-                <p className="text-sm text-stone-500">
-                  Sales dropped {alert.dropPercentage.toFixed(1)}%
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <TrendingDown className="size-4 text-red-600" />
-                <span className="text-sm font-medium text-red-600">
-                  -{alert.dropPercentage.toFixed(1)}%
-                </span>
-              </div>
-            </div>
-          </Link>
-        ))}
       </div>
-
-      {totalAlerts > 9 && (
-        <div className="border-t border-stone-100 bg-stone-50/50 px-6 py-4 sm:px-8 text-center">
-          <p className="text-sm text-stone-600">
-            +{totalAlerts - 9} more alert{totalAlerts - 9 !== 1 ? 's' : ''}
-          </p>
-        </div>
-      )}
     </section>
   );
 }

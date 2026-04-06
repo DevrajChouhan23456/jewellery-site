@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, Filter, X, Trash2, Edit3, Package } from "lucide-react";
+import { Upload, Filter, X, Trash2, Edit3, Search } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -51,16 +51,6 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
     window.location.href = '/admin/products';
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      // In a real implementation, you'd get all product IDs from the current page
-      // For now, we'll just clear selection
-      setSelectedProducts(new Set());
-    } else {
-      setSelectedProducts(new Set());
-    }
-  };
-
   const handleBulkDelete = async () => {
     if (selectedProducts.size === 0) return;
 
@@ -73,7 +63,7 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
       setShowBulkActions(false);
       // Refresh page
       window.location.reload();
-    } catch (error) {
+    } catch {
       toast.error('Bulk delete failed');
     }
   };
@@ -90,7 +80,7 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
       setBulkValue('');
       // Refresh page
       window.location.reload();
-    } catch (error) {
+    } catch {
       toast.error('Bulk update failed');
     }
   };
@@ -98,32 +88,36 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-3">
-          <form action="/admin/products" className="flex flex-wrap items-center gap-3">
-            <input
+        <div className="flex flex-wrap gap-3 rounded-[1.75rem] border border-stone-200 bg-stone-50/70 p-4">
+          <form action="/admin/products" className="flex flex-1 flex-wrap items-center gap-3">
+            <div className="relative min-w-[260px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
+              <Input
               name="query"
               defaultValue={query}
               placeholder="Search by name, slug, category..."
-              className="h-11 min-w-[260px] rounded-full border border-stone-300 bg-white px-4 text-sm text-stone-900 outline-none transition focus:border-stone-500"
-            />
-            <button
+                className="h-11 rounded-full border-stone-200 bg-white pl-10"
+              />
+            </div>
+            <Button
               type="submit"
-              className="h-11 rounded-full border border-stone-300 bg-white px-4 text-sm font-medium text-stone-900 transition hover:border-stone-400 hover:bg-stone-50"
+              variant="outline"
+              className="h-11 rounded-full border-stone-300 bg-white px-4"
             >
               Search
-            </button>
+            </Button>
           </form>
           <Button
             onClick={() => setShowFilters(!showFilters)}
             variant="outline"
-            className="h-11 rounded-full"
+            className="h-11 rounded-full border-stone-300 bg-white"
           >
             <Filter className="w-4 h-4 mr-2" />
             Filters
           </Button>
           <Button
             onClick={() => setShowBulkUpload(true)}
-            className="h-11 rounded-full bg-stone-100 text-stone-900 hover:bg-stone-200"
+            className="h-11 rounded-full bg-white text-stone-900 ring-1 ring-stone-200 hover:bg-stone-100"
           >
             <Upload className="w-4 h-4 mr-2" />
             Bulk Upload
@@ -137,11 +131,14 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
         </div>
 
         {selectedProducts.size > 0 && (
-          <div className="flex items-center gap-3 p-3 bg-stone-100 rounded-xl">
-            <span className="text-sm font-medium">{selectedProducts.size} selected</span>
+          <div className="flex flex-wrap items-center gap-3 rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4">
+            <span className="text-sm font-medium text-stone-900">
+              {selectedProducts.size} selected
+            </span>
             <Button
               size="sm"
               variant="outline"
+              className="rounded-full"
               onClick={() => setShowBulkActions(!showBulkActions)}
             >
               <Edit3 className="w-4 h-4 mr-1" />
@@ -150,6 +147,7 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
             <Button
               size="sm"
               variant="destructive"
+              className="rounded-full"
               onClick={handleBulkDelete}
             >
               <Trash2 className="w-4 h-4 mr-1" />
@@ -159,12 +157,17 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
         )}
 
         {showBulkActions && (
-          <div className="p-4 bg-stone-50 rounded-xl border">
-            <div className="flex gap-3 items-end">
+          <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4">
+            <div className="flex flex-wrap gap-3 items-end">
               <div>
-                <label className="block text-sm font-medium mb-1">Action</label>
-                <Select value={bulkAction || ""} onValueChange={(value: any) => setBulkAction(value)}>
-                  <SelectTrigger className="w-48">
+                <label className="mb-1 block text-sm font-medium">Action</label>
+                <Select
+                  value={bulkAction || ""}
+                  onValueChange={(value) =>
+                    setBulkAction(value as "update-category" | "update-price")
+                  }
+                >
+                  <SelectTrigger className="w-48 rounded-xl bg-white">
                     <SelectValue placeholder="Choose action" />
                   </SelectTrigger>
                   <SelectContent>
@@ -174,12 +177,12 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
                 </Select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Value</label>
+                <label className="mb-1 block text-sm font-medium">Value</label>
                 <Input
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
                   placeholder={bulkAction === 'update-price' ? "10" : "new-category"}
-                  className="w-32"
+                  className="w-32 rounded-xl bg-white"
                 />
               </div>
               <Button onClick={handleBulkUpdate} disabled={!bulkAction || !bulkValue}>
@@ -193,9 +196,9 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
         )}
 
         {showFilters && (
-          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium">Filters</h3>
+          <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-medium text-stone-950">Filters</h3>
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="w-4 h-4 mr-1" />
                 Clear all
@@ -203,9 +206,9 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
+                <label className="mb-1 block text-sm font-medium">Category</label>
                 <Select value={localFilters.category || ""} onValueChange={(value) => handleFilterChange('category', value)}>
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-10 w-full rounded-xl bg-white">
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent>
@@ -217,9 +220,9 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
                 </Select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Material</label>
+                <label className="mb-1 block text-sm font-medium">Material</label>
                 <Select value={localFilters.material || ""} onValueChange={(value) => handleFilterChange('material', value)}>
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-10 w-full rounded-xl bg-white">
                     <SelectValue placeholder="All materials" />
                   </SelectTrigger>
                   <SelectContent>
@@ -232,29 +235,29 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
                 </Select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Min Price</label>
+                <label className="mb-1 block text-sm font-medium">Min Price</label>
                 <Input
                   type="number"
                   placeholder="0"
                   value={localFilters.minPrice || ""}
                   onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-                  className="h-9"
+                  className="h-10 rounded-xl bg-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Max Price</label>
+                <label className="mb-1 block text-sm font-medium">Max Price</label>
                 <Input
                   type="number"
                   placeholder="No limit"
                   value={localFilters.maxPrice || ""}
                   onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                  className="h-9"
+                  className="h-10 rounded-xl bg-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Stock Status</label>
+                <label className="mb-1 block text-sm font-medium">Stock Status</label>
                 <Select value={localFilters.stockStatus || ""} onValueChange={(value) => handleFilterChange('stockStatus', value)}>
-                  <SelectTrigger className="h-9">
+                  <SelectTrigger className="h-10 w-full rounded-xl bg-white">
                     <SelectValue placeholder="All stock levels" />
                   </SelectTrigger>
                   <SelectContent>

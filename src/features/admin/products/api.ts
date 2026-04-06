@@ -95,3 +95,12 @@ export async function createAdminProductsBulkRequest(products: CreateProductInpu
     products,
   );
 }
+
+export function getProductApiFieldErrors(error: unknown): ProductFieldErrors | undefined {
+  if (!error) return undefined;
+  if (error instanceof Error && "fieldErrors" in error) {
+    const typedError = error as ProductApiError;
+    return typedError.fieldErrors;
+  }
+  return undefined;
+}

@@ -46,6 +46,7 @@ export default function CategoryGrid({ section, items }: CategoryGridProps) {
                           src={item.image}
                           alt={item.title}
                           fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                           className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 mix-blend-multiply"
                         />
                       </div>

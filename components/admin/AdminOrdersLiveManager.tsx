@@ -2,8 +2,35 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { OrderStatusUpdater } from "@/components/admin/OrderStatusUpdater";
+import { Download, RefreshCcw, Search } from "lucide-react";
 import { toast } from "react-hot-toast";
+
+import { OrderStatusUpdater } from "@/components/admin/OrderStatusUpdater";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type AdminOrderItem = {
   id: string;
@@ -53,8 +80,23 @@ type AdminOrdersLiveManagerProps = {
   };
 };
 
-const STATUS_OPTIONS = ["ALL", "PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
-const PAYMENT_STATUS_OPTIONS = ["ALL", "PENDING", "AUTHORIZED", "PAID", "FAILED", "REFUNDED"];
+const STATUS_OPTIONS = [
+  "ALL",
+  "PENDING",
+  "CONFIRMED",
+  "PROCESSING",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+];
+const PAYMENT_STATUS_OPTIONS = [
+  "ALL",
+  "PENDING",
+  "AUTHORIZED",
+  "PAID",
+  "FAILED",
+  "REFUNDED",
+];
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-IN", {
@@ -68,6 +110,36 @@ function formatDate(date: string) {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function orderStatusClass(status: string) {
+  switch (status) {
+    case "DELIVERED":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "SHIPPED":
+      return "border-sky-200 bg-sky-50 text-sky-700";
+    case "PROCESSING":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "CANCELLED":
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    default:
+      return "border-stone-200 bg-stone-50 text-stone-700";
+  }
+}
+
+function paymentStatusClass(status: string) {
+  switch (status) {
+    case "PAID":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "AUTHORIZED":
+      return "border-cyan-200 bg-cyan-50 text-cyan-700";
+    case "FAILED":
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    case "REFUNDED":
+      return "border-violet-200 bg-violet-50 text-violet-700";
+    default:
+      return "border-stone-200 bg-stone-50 text-stone-700";
+  }
 }
 
 export function AdminOrdersLiveManager({
@@ -91,19 +163,34 @@ export function AdminOrdersLiveManager({
   const [lastSync, setLastSync] = useState<Date>(() => new Date());
   const [realTimeActive, setRealTimeActive] = useState(true);
 
-  const totalPages = useMemo(() => pagination.totalPages || 1, [pagination.totalPages]);
+  const totalPages = useMemo(
+    () => pagination.totalPages || 1,
+    [pagination.totalPages],
+  );
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     params.set("page", String(currentPage));
     params.set("limit", String(pageSize));
     if (filters.search) params.set("search", filters.search);
-    if (filters.status && filters.status !== "ALL") params.set("status", filters.status);
-    if (filters.paymentStatus && filters.paymentStatus !== "ALL") params.set("paymentStatus", filters.paymentStatus);
+    if (filters.status && filters.status !== "ALL") {
+      params.set("status", filters.status);
+    }
+    if (filters.paymentStatus && filters.paymentStatus !== "ALL") {
+      params.set("paymentStatus", filters.paymentStatus);
+    }
     if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
     if (filters.dateTo) params.set("dateTo", filters.dateTo);
     return params.toString();
-  }, [currentPage, pageSize, filters.search, filters.status, filters.paymentStatus, filters.dateFrom, filters.dateTo]);
+  }, [
+    currentPage,
+    pageSize,
+    filters.search,
+    filters.status,
+    filters.paymentStatus,
+    filters.dateFrom,
+    filters.dateTo,
+  ]);
 
   const loadOrders = useMemo(() => {
     return async () => {
@@ -118,7 +205,14 @@ export function AdminOrdersLiveManager({
 
         const payload = await response.json();
         setOrders(payload.orders || []);
-        setPagination(payload.pagination || { page: 1, limit: pageSize, totalCount: 0, totalPages: 1 });
+        setPagination(
+          payload.pagination || {
+            page: 1,
+            limit: pageSize,
+            totalCount: 0,
+            totalPages: 1,
+          },
+        );
         setLastSync(new Date());
       } catch (error) {
         console.error("Failed to fetch admin orders:", error);
@@ -127,24 +221,34 @@ export function AdminOrdersLiveManager({
         setIsLoading(false);
       }
     };
-  }, [queryString, pageSize]);
+  }, [pageSize, queryString]);
 
   useEffect(() => {
-    loadOrders();
+    void loadOrders();
   }, [loadOrders]);
 
   useEffect(() => {
-    if (!realTimeActive) return;
+    if (!realTimeActive) {
+      return;
+    }
+
     const intervalId = window.setInterval(async () => {
       try {
         const response = await fetch(`/api/admin/orders?${queryString}`);
-        if (!response.ok) return;
+        if (!response.ok) {
+          return;
+        }
+
         const payload = await response.json();
-        if (!payload || !payload.orders) return;
+        if (!payload || !payload.orders) {
+          return;
+        }
 
         const stale =
           payload.pagination.totalCount !== pagination.totalCount ||
-          payload.orders.length > 0 && orders.length > 0 && payload.orders[0].id !== orders[0].id;
+          (payload.orders.length > 0 &&
+            orders.length > 0 &&
+            payload.orders[0].id !== orders[0].id);
 
         if (stale) {
           setOrders(payload.orders);
@@ -152,16 +256,16 @@ export function AdminOrdersLiveManager({
           setLastSync(new Date());
           toast.success("Order list synchronized with live updates.");
         }
-      } catch (err) {
-        console.error("Real-time refresh failed:", err);
+      } catch (error) {
+        console.error("Real-time refresh failed:", error);
       }
     }, 10000);
 
-    return () => clearInterval(intervalId);
-  }, [realTimeActive, queryString, pagination.totalCount, orders]);
+    return () => window.clearInterval(intervalId);
+  }, [orders, pagination.totalCount, queryString, realTimeActive]);
 
   const onFilterChange = (field: keyof typeof filters, value: string) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
+    setFilters((current) => ({ ...current, [field]: value }));
     setCurrentPage(1);
   };
 
@@ -197,169 +301,279 @@ export function AdminOrdersLiveManager({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[1.5rem] border border-white/70 bg-white/80 p-5 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <input
-            value={filters.search}
-            onChange={event => onFilterChange("search", event.target.value)}
-            placeholder="Search order number, customer name, email"
-            className="w-full max-w-xs rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
-          />
-          <select
-            value={filters.status}
-            onChange={event => onFilterChange("status", event.target.value)}
-            className="rounded-lg border border-stone-300 px-3 py-2 text-sm"
-          >
-            {STATUS_OPTIONS.map(option => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filters.paymentStatus}
-            onChange={event => onFilterChange("paymentStatus", event.target.value)}
-            className="rounded-lg border border-stone-300 px-3 py-2 text-sm"
-          >
-            {PAYMENT_STATUS_OPTIONS.map(option => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <div className="grid grid-cols-2 gap-2">
-            <input
+      <Card className="rounded-[2rem] border-white/70 bg-white/86 py-0 shadow-[0_22px_70px_-50px_rgba(28,25,23,0.38)]">
+        <CardHeader className="border-b border-stone-100 px-6 py-5 sm:px-7">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <CardTitle className="text-lg font-semibold text-stone-950">
+                Filter and monitor
+              </CardTitle>
+              <CardDescription className="mt-1 text-sm text-stone-500">
+                Search by customer or order number, then narrow the live list by
+                status, payment, and date range.
+              </CardDescription>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className={
+                  realTimeActive
+                    ? "rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "rounded-full border-stone-200 bg-stone-50 text-stone-700"
+                }
+              >
+                {realTimeActive ? "Live sync on" : "Live sync paused"}
+              </Badge>
+              <span className="text-xs text-stone-500">
+                Last sync: {formatDate(lastSync.toISOString())}
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4 px-6 py-5 sm:px-7">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.75fr)_minmax(0,0.75fr)_auto]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
+              <Input
+                value={filters.search}
+                onChange={(event) => onFilterChange("search", event.target.value)}
+                placeholder="Search order number, customer, or email"
+                className="h-11 rounded-2xl border-stone-200 bg-white pl-10"
+              />
+            </div>
+
+            <Select
+              value={filters.status}
+              onValueChange={(value) => onFilterChange("status", value)}
+            >
+              <SelectTrigger className="h-11 w-full rounded-2xl border-stone-200 bg-white px-3">
+                <SelectValue placeholder="Order status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.paymentStatus}
+              onValueChange={(value) => onFilterChange("paymentStatus", value)}
+            >
+              <SelectTrigger className="h-11 w-full rounded-2xl border-stone-200 bg-white px-3">
+                <SelectValue placeholder="Payment status" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                className="h-11 rounded-full"
+                onClick={() => setRealTimeActive((current) => !current)}
+              >
+                <RefreshCcw className="size-4" />
+                {realTimeActive ? "Pause sync" : "Resume sync"}
+              </Button>
+              <Button
+                className="h-11 rounded-full"
+                onClick={() => void handleExportCsv()}
+                disabled={isExporting}
+              >
+                <Download className="size-4" />
+                {isExporting ? "Exporting..." : "Export CSV"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_auto]">
+            <Input
               type="date"
               value={filters.dateFrom}
-              onChange={event => onFilterChange("dateFrom", event.target.value)}
-              className="rounded-lg border border-stone-300 px-3 py-2 text-sm"
+              onChange={(event) => onFilterChange("dateFrom", event.target.value)}
+              className="h-11 rounded-2xl border-stone-200 bg-white"
             />
-            <input
+            <Input
               type="date"
               value={filters.dateTo}
-              onChange={event => onFilterChange("dateTo", event.target.value)}
-              className="rounded-lg border border-stone-300 px-3 py-2 text-sm"
+              onChange={(event) => onFilterChange("dateTo", event.target.value)}
+              className="h-11 rounded-2xl border-stone-200 bg-white"
             />
+            <Select
+              value={String(pageSize)}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-11 w-full rounded-2xl border-stone-200 bg-white px-3">
+                <SelectValue placeholder="Page size" />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 20, 50, 100].map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size} per page
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <button
-            onClick={handleExportCsv}
-            disabled={isExporting}
-            className="ml-auto rounded-lg bg-stone-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-stone-800 disabled:opacity-50"
-          >
-            {isExporting ? "Exporting..." : "Export CSV"}
-          </button>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-stone-500">
-          <span>Live updates: </span>
-          <button
-            type="button"
-            onClick={() => setRealTimeActive(prev => !prev)}
-            className="rounded-md border px-2 py-1 text-[11px]"
-          >
-            {realTimeActive ? "Pause" : "Resume"}
-          </button>
-          <span>Last sync: {formatDate(lastSync.toISOString())}</span>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/80">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-stone-100 text-stone-700">
-            <tr>
-              <th className="px-4 py-3">Order #</th>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Payment</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3">Created</th>
-              <th className="px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-stone-500">
-                  Loading orders...
-                </td>
-              </tr>
-            ) : orders.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-stone-500">
-                  No orders found with these filters.
-                </td>
-              </tr>
-            ) : (
-              orders.map(order => (
-                <tr key={order.id} className="border-t border-stone-100 hover:bg-stone-50">
-                  <td className="px-4 py-3 font-medium text-stone-800">{order.orderNumber}</td>
-                  <td className="px-4 py-3 text-stone-600">
-                    {order.user?.name || "-"}
-                    <div className="text-xs text-stone-500">{order.user?.email}</div>
-                  </td>
-                  <td className="px-4 py-3 text-stone-700">
-                    <span className="inline-flex items-center rounded-full border px-2 py-1 text-[11px]">
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-stone-700">
-                    <span className="inline-flex items-center rounded-full border px-2 py-1 text-[11px]">
-                      {order.paymentStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-stone-800">{formatCurrency(order.totalAmount)}</td>
-                  <td className="px-4 py-3 text-stone-600">{formatDate(order.createdAt)}</td>
-                  <td className="px-4 py-3 space-x-2">
-                    <Link
-                      href={`/admin/orders/${order.id}`}
-                      className="rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-700 hover:bg-stone-100"
-                    >
-                      View
-                    </Link>
-                    <OrderStatusUpdater orderId={order.id} currentStatus={order.status} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </section>
+      <Card className="rounded-[2rem] border-white/70 bg-white/86 py-0 shadow-[0_22px_70px_-50px_rgba(28,25,23,0.38)]">
+        <CardHeader className="border-b border-stone-100 px-6 py-5 sm:px-7">
+          <CardTitle className="text-lg font-semibold text-stone-950">
+            Orders
+          </CardTitle>
+          <CardDescription className="text-sm text-stone-500">
+            Showing page {pagination.page} of {totalPages} with{" "}
+            {pagination.totalCount} total orders.
+          </CardDescription>
+        </CardHeader>
 
-      <section className="flex items-center justify-between gap-3 rounded-[1.5rem] border border-white/70 bg-white/80 px-4 py-3 text-sm">
-        <div>
-          Showing page {pagination.page} of {totalPages}, {pagination.totalCount} orders
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={pagination.page <= 1}
-            className="rounded-lg border px-3 py-1 text-xs disabled:opacity-50"
-          >
-            Prev
-          </button>
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={pagination.page >= totalPages}
-            className="rounded-lg border px-3 py-1 text-xs disabled:opacity-50"
-          >
-            Next
-          </button>
-          <select
-            value={pageSize}
-            onChange={event => {
-              const value = Number(event.target.value);
-              setPageSize(value);
-              setCurrentPage(1);
-            }}
-            className="rounded-lg border px-2 py-1 text-xs"
-          >
-            {[10, 20, 50, 100].map(size => (
-              <option key={size} value={size}>
-                {size}/page
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
+        <CardContent className="px-0 py-0">
+          <Table>
+            <TableHeader className="bg-stone-50/80">
+              <TableRow className="border-stone-100 hover:bg-stone-50/80">
+                <TableHead className="px-6 py-4 sm:px-7">Order</TableHead>
+                <TableHead className="px-2 py-4">Customer</TableHead>
+                <TableHead className="px-2 py-4">Status</TableHead>
+                <TableHead className="px-2 py-4">Payment</TableHead>
+                <TableHead className="px-2 py-4">Total</TableHead>
+                <TableHead className="px-2 py-4">Created</TableHead>
+                <TableHead className="px-6 py-4 text-right sm:px-7">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={7}
+                    className="px-6 py-10 text-center text-sm text-stone-500 sm:px-7"
+                  >
+                    Loading orders...
+                  </TableCell>
+                </TableRow>
+              ) : orders.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={7}
+                    className="px-6 py-10 text-center text-sm text-stone-500 sm:px-7"
+                  >
+                    No orders found with these filters.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                orders.map((order) => (
+                  <TableRow key={order.id} className="border-stone-100">
+                    <TableCell className="px-6 py-4 sm:px-7">
+                      <div>
+                        <p className="font-semibold text-stone-950">
+                          #{order.orderNumber}
+                        </p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {order.items.length} item
+                          {order.items.length === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-2 py-4">
+                      <p className="font-medium text-stone-800">
+                        {order.user?.name || "Guest"}
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        {order.user?.email || "No email"}
+                      </p>
+                    </TableCell>
+                    <TableCell className="px-2 py-4">
+                      <Badge
+                        variant="outline"
+                        className={`rounded-full ${orderStatusClass(order.status)}`}
+                      >
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-2 py-4">
+                      <Badge
+                        variant="outline"
+                        className={`rounded-full ${paymentStatusClass(order.paymentStatus)}`}
+                      >
+                        {order.paymentStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-2 py-4 font-medium text-stone-900">
+                      {formatCurrency(order.totalAmount)}
+                    </TableCell>
+                    <TableCell className="px-2 py-4 text-sm text-stone-500">
+                      {formatDate(order.createdAt)}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-right sm:px-7">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="rounded-full"
+                        >
+                          <Link href={`/admin/orders/${order.id}`}>View</Link>
+                        </Button>
+                        <OrderStatusUpdater
+                          orderId={order.id}
+                          currentStatus={order.status}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-[2rem] border-white/70 bg-white/86 py-0 shadow-[0_22px_70px_-50px_rgba(28,25,23,0.38)]">
+        <CardContent className="flex flex-col gap-4 px-6 py-5 sm:px-7 md:flex-row md:items-center md:justify-between">
+          <div className="text-sm text-stone-500">
+            Showing page {pagination.page} of {totalPages} across{" "}
+            {pagination.totalCount} orders.
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={() => setCurrentPage((current) => Math.max(current - 1, 1))}
+              disabled={pagination.page <= 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={() =>
+                setCurrentPage((current) => Math.min(current + 1, totalPages))
+              }
+              disabled={pagination.page >= totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

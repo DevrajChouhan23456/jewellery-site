@@ -12,7 +12,7 @@ async function generateEmbeddings() {
   // Get all products without embeddings
   const products = await prisma.product.findMany({
     where: {
-      embeddings: null,
+      embeddings: { equals: null },
     },
     select: {
       id: true,

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Edit3, Check, X } from "lucide-react";
 import toast from "react-hot-toast";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateAdminProductRequest } from "@/features/admin/products/api";
@@ -69,7 +70,7 @@ export default function InlineEditableProduct({ product, isSelected = false, onS
       // Update the product object (in a real app, you'd refetch or use state management)
       product.price = newPrice;
       product.stock = newStock;
-    } catch (error) {
+    } catch {
       toast.error("Failed to update product");
     } finally {
       setIsSaving(false);
@@ -85,7 +86,7 @@ export default function InlineEditableProduct({ product, isSelected = false, onS
   const previewImage = product.images[0] ?? "/images/sbg-women.jpg";
 
   return (
-    <div className="grid gap-4 px-6 py-5 sm:px-8 lg:grid-cols-[auto_auto_1fr_auto] lg:items-center">
+    <div className="grid gap-4 px-6 py-5 transition hover:bg-stone-50/70 sm:px-8 lg:grid-cols-[auto_auto_1fr_auto] lg:items-center">
       {onSelect && (
         <input
           type="checkbox"
@@ -108,12 +109,26 @@ export default function InlineEditableProduct({ product, isSelected = false, onS
         <p className="truncate text-lg font-semibold text-stone-950">
           {product.name}
         </p>
-        <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium uppercase tracking-[0.16em] text-stone-500">
-          <span>{product.category}</span>
-          {product.subCategory && <span>{product.subCategory}</span>}
-          <span>{product.material}</span>
-          <span>{product.type}</span>
-          {product.size && <span>{product.size}</span>}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Badge variant="outline" className="rounded-full border-stone-200 bg-stone-50 text-stone-700">
+            {product.category}
+          </Badge>
+          {product.subCategory ? (
+            <Badge variant="outline" className="rounded-full border-stone-200 bg-stone-50 text-stone-700">
+              {product.subCategory}
+            </Badge>
+          ) : null}
+          <Badge variant="outline" className="rounded-full border-stone-200 bg-stone-50 text-stone-700">
+            {product.material}
+          </Badge>
+          <Badge variant="outline" className="rounded-full border-stone-200 bg-stone-50 text-stone-700">
+            {product.type}
+          </Badge>
+          {product.size ? (
+            <Badge variant="outline" className="rounded-full border-stone-200 bg-stone-50 text-stone-700">
+              {product.size}
+            </Badge>
+          ) : null}
         </div>
         <p className="mt-3 text-sm text-[var(--luxury-muted)]">
           Slug: {product.slug}
@@ -148,7 +163,7 @@ export default function InlineEditableProduct({ product, isSelected = false, onS
                 size="sm"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="h-8 px-2"
+                className="h-8 rounded-full px-2"
               >
                 <Check className="w-3 h-3" />
               </Button>
@@ -157,7 +172,7 @@ export default function InlineEditableProduct({ product, isSelected = false, onS
                 variant="outline"
                 onClick={handleCancel}
                 disabled={isSaving}
-                className="h-8 px-2"
+                className="h-8 rounded-full px-2"
               >
                 <X className="w-3 h-3" />
               </Button>
@@ -178,7 +193,7 @@ export default function InlineEditableProduct({ product, isSelected = false, onS
                 size="sm"
                 variant="outline"
                 onClick={() => setIsEditing(true)}
-                className="h-8 px-3"
+                className="h-8 rounded-full px-3"
               >
                 <Edit3 className="w-3 h-3 mr-1" />
                 Edit
