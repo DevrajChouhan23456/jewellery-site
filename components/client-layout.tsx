@@ -10,6 +10,10 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname()
 
+  if (pathname.startsWith("/studio")) {
+    return <>{children}</>
+  }
+
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div

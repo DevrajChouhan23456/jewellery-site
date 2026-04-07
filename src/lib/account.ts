@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
-import { parseCheckoutOrderMetadata } from "@/lib/orders";
 import { getCurrentCustomerUserId } from "@/lib/customer-session";
+import { parseCheckoutOrderMetadata } from "@/server/orders/utils";
+import { hydrateOrderWithShopPageProducts } from "@/server/orders/product-snapshots";
 
 export async function getCurrentUserOrders() {
   const userId = await getCurrentCustomerUserId();
@@ -11,17 +12,12 @@ export async function getCurrentUserOrders() {
 
   const allOrders = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
-      items: {
-        include: {
-          product: true,
-        },
-      },
-    },
   });
 
   return allOrders.filter((order) => {
-    if (order.userId === userId) {
+    const metadata = parseCheckoutOrderMetadata(order.metadata);
+
+    if (order.userId === userId || metadata.customerUserId === userId) {
       return true;
     }
 
@@ -40,8 +36,12 @@ export async function getCurrentUserOrderById(orderId: string) {
     where: { id: orderId },
     include: {
       items: {
-        include: {
-          product: true,
+        select: {
+          id: true,
+          productId: true,
+          quantity: true,
+          unitPrice: true,
+          lineTotal: true,
         },
       },
     },
@@ -51,10 +51,16 @@ export async function getCurrentUserOrderById(orderId: string) {
     return null;
   }
 
+  const hydratedOrder = await hydrateOrderWithShopPageProducts(order);
+
+  if (!hydratedOrder) {
+    return null;
+  }
+
   const metadata = parseCheckoutOrderMetadata(order.metadata);
 
-  if (order.userId === userId) {
-    return order;
+  if (order.userId === userId || metadata.customerUserId === userId) {
+    return hydratedOrder;
   }
 
   return null;

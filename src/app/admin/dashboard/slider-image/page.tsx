@@ -1,1 +1,5 @@
-export { default } from "@/app/admin/dashboard/storefront/page";
+import { redirect } from "next/navigation";
+
+export default function SliderImagePage() {
+  redirect("/admin/dashboard/storefront");
+}

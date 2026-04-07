@@ -115,9 +115,10 @@ export default function CartDrawer() {
               <div key={item.id} className="group flex gap-4 border-b border-gray-50 pb-6">
                 <div className="relative h-24 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-[#faf9f6]">
                   <Image
-                    src={item.imageUrl || "/images/product-placeholder.png"}
+                    src={item.imageUrl || "/images/product-placeholder.svg"}
                     alt={item.name}
                     fill
+                    sizes="80px"
                     className="object-cover"
                   />
                 </div>

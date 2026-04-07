@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, MapPin, User } from "lucide-react";
 
@@ -61,6 +62,21 @@ interface OrderDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+type ShippingAddress = {
+  street?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+};
+
+function getShippingAddress(value: unknown): ShippingAddress | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  return value as ShippingAddress;
+}
+
 export default async function AdminOrderDetailPage({ params }: OrderDetailPageProps) {
   const { id } = await params;
   await requireAdminPageAccess(`/admin/orders/${id}`);
@@ -79,7 +95,7 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
     );
   }
 
-  const statusOptions = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
+  const shippingAddress = getShippingAddress(order.shippingAddress);
 
   return (
     <main className="luxury-shell py-10 sm:py-12">
@@ -107,15 +123,21 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
             <div className="divide-y divide-stone-100">
               {order.items.map((item) => (
                 <div key={item.id} className="flex items-center gap-4 p-6">
-                  <div className="size-16 flex-shrink-0 overflow-hidden rounded-lg">
-                    <img
-                      src={item.product.images?.[0] || "/placeholder.jpg"}
+                  <div className="relative size-16 flex-shrink-0 overflow-hidden rounded-lg">
+                    <Image
+                      src={item.product.images?.[0] || "/images/product-placeholder.svg"}
                       alt={item.product.name}
-                      className="size-full object-cover"
+                      fill
+                      sizes="64px"
+                      unoptimized
+                      className="object-cover"
                     />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-medium text-stone-950">{item.product.name}</h3>
+                    {item.product.isArchived ? (
+                      <p className="text-xs text-stone-500">Archived from the live catalog</p>
+                    ) : null}
                     <p className="text-sm text-stone-600">Quantity: {item.quantity}</p>
                   </div>
                   <div className="text-right">
@@ -194,15 +216,15 @@ export default async function AdminOrderDetailPage({ params }: OrderDetailPagePr
                     <p className="text-sm text-stone-600">{order.user?.phone}</p>
                   </div>
                 </div>
-                {order.shippingAddress && (
+                {shippingAddress ? (
                   <div className="flex items-start gap-3">
                     <MapPin className="size-4 text-stone-400 mt-0.5" />
                     <div className="text-sm text-stone-600">
-                      <p>{(order.shippingAddress as any)?.street}</p>
-                      <p>{(order.shippingAddress as any)?.city}, {(order.shippingAddress as any)?.state} {(order.shippingAddress as any)?.pincode}</p>
+                      <p>{shippingAddress.street}</p>
+                      <p>{shippingAddress.city}, {shippingAddress.state} {shippingAddress.pincode}</p>
                     </div>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </section>

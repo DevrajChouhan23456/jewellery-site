@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Jewellery Storefront
 
-## Getting Started
+## Local Development
 
-First, run the development server:
+Run the app from `my-app`:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The storefront will be available at `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Sanity Studio
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The app now includes an embedded Sanity Studio at `/studio`.
 
-## Learn More
+1. Add the Sanity variables from `.env.example`.
+2. Install dependencies with `npm install`.
+3. Restart the dev server.
+4. Visit `http://localhost:3000/studio`.
 
-To learn more about Next.js, take a look at the following resources:
+Published homepage and shop-page shell content now prefers Sanity, while Prisma
+continues to power products, pricing, carts, and orders.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Editing Homepage Content
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Visit `http://localhost:3000/studio`.
+2. Open the `Homepage` document in the Studio sidebar.
+3. Update the area you want:
+   `Hero Slides` controls the main homepage carousel and signature story cards.
+   `Category Section` plus `Category Cards` controls the category grid.
+   `Trending Section` plus `Trending Cards` controls the curated trending block.
+   `Arrival Section` plus `Arrival Cards` controls the new arrivals block.
+   `Gender Section` plus `Gender Cards` controls the shop-by-gender block.
+   `Service Pillars`, `Reassurance Highlights`, `Concierge`, and `Styling Journal` control the lower homepage sections.
+4. Publish the document in Sanity.
 
-## Deploy on Vercel
+For category landing-page copy, open a `Shop Page` document in Studio. Product
+inventory and prices still come from the app admin and Prisma, not Sanity.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To bootstrap the current Prisma-backed storefront content into Sanity, add a
+write token and run:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run sanity:migrate-storefront
+```
+
+That command creates or replaces the singleton `homePage` document plus the
+current `shopPage-*` editorial documents in Sanity using the existing storefront
+content and image URL fallbacks.
+
+The token must be able to create and update documents in your target dataset.
+If `--dry-run` works but the real migration returns a 403 permission error, the
+token is authenticated but does not have mutation rights.

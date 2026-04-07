@@ -15,6 +15,7 @@ const LogoSection = ({ logoUrl }: LogoSectionProps) => (
           src={logoUrl}
           alt="Tanishq"
           fill
+          priority
           sizes="(max-width: 768px) 100vw, 200px"
           className="object-contain object-left"
         />

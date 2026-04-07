@@ -31,8 +31,6 @@ export type MegaMenuItem = {
 
 export const categories: Category[] = [
   { label: "All Jewellery", href: "/shop/jewellery", icon: Sparkles },
-  { label: "Gold", href: "/shop/gold", icon: CircleDollarSign },
-  { label: "Diamond", href: "/shop/diamond", icon: Diamond },
   { label: "Earrings", href: "/shop/earrings", icon: Ear },
   { label: "Rings", href: "/shop/rings", icon: Circle },
   { label: "Daily Wear", href: "/shop/glamdays", icon: Sun },

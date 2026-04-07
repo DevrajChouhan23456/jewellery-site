@@ -7,7 +7,6 @@ import {
   createProductSchema,
   deleteProductSchema,
   type CreateProductInput,
-  type DeleteProductInput,
   updateProductSchema,
 } from "@/features/admin/products/validation";
 
@@ -33,6 +32,7 @@ const adminProductDetailSelect = {
   name: true,
   slug: true,
   price: true,
+  stock: true,
   category: true,
   subCategory: true,
   material: true,
@@ -245,7 +245,10 @@ export async function createAdminProduct(
     }
 
     const product = await prisma.product.create({
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+        embeddings: [],
+      },
       select: adminProductDetailSelect,
     });
 
@@ -298,6 +301,7 @@ export async function updateAdminProduct(
         name: parsed.data.name,
         slug: parsed.data.slug,
         price: parsed.data.price,
+        stock: parsed.data.stock,
         category: parsed.data.category,
         subCategory: parsed.data.subCategory,
         material: parsed.data.material,
@@ -400,7 +404,10 @@ export async function createAdminProductsBulk(
     }
 
     await prisma.product.createMany({
-      data: validProducts,
+      data: validProducts.map((product) => ({
+        ...product,
+        embeddings: [],
+      })),
     });
 
     const createdProducts = await prisma.product.findMany({

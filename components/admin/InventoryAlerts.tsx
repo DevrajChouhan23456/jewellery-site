@@ -70,9 +70,10 @@ function AlertListItem({
     >
       <div className="relative size-12 overflow-hidden rounded-2xl border border-stone-200 bg-stone-100">
         <Image
-          src={image || "/placeholder.jpg"}
+          src={image || "/images/product-placeholder.svg"}
           alt={title}
           fill
+          sizes="48px"
           unoptimized
           className="object-cover"
         />

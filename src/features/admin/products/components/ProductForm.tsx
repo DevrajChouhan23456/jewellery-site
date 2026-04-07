@@ -30,6 +30,7 @@ type ProductFormValues = {
   material: string;
   name: string;
   price: string;
+  stock: string;
   size: string;
   slug: string;
   subCategory: string;
@@ -42,6 +43,7 @@ const emptyProductFormValues: ProductFormValues = {
   material: "gold",
   name: "",
   price: "",
+  stock: "24",
   size: "",
   slug: "",
   subCategory: "",
@@ -59,6 +61,7 @@ function toFormValues(product?: ProductFormInitialData): ProductFormValues {
     material: product.material,
     name: product.name,
     price: String(product.price),
+    stock: String(product.stock ?? 24),
     size: product.size ?? "",
     slug: product.slug,
     subCategory: product.subCategory ?? "",
@@ -94,19 +97,6 @@ export default function ProductForm({
 
   const isEditMode = Boolean(initialProduct?.id);
 
-  // Auto-save draft every 30 seconds
-  useEffect(() => {
-    if (isEditMode) return; // Only auto-save for new products
-
-    const interval = setInterval(() => {
-      if (values.name && values.category && values.material && values.type) {
-        handleAutoSave();
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [values]);
-
   const handleAutoSave = useCallback(async () => {
     if (isAutoSaving || !values.name.trim()) return;
 
@@ -116,6 +106,7 @@ export default function ProductForm({
         name: values.name,
         slug: values.slug,
         price: values.price,
+        stock: values.stock,
         category: values.category,
         subCategory: values.subCategory,
         material: values.material,
@@ -141,6 +132,19 @@ export default function ProductForm({
     }
   }, [values, isAutoSaving]);
 
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    if (isEditMode) return; // Only auto-save for new products
+
+    const interval = setInterval(() => {
+      if (values.name && values.category && values.material && values.type) {
+        handleAutoSave();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [handleAutoSave, isEditMode, values.category, values.material, values.name, values.type]);
+
   // Load draft on mount for new products
   useEffect(() => {
     if (isEditMode) return;
@@ -160,7 +164,7 @@ export default function ProductForm({
         } else {
           localStorage.removeItem(draftKey);
         }
-      } catch (error) {
+      } catch {
         localStorage.removeItem(draftKey);
       }
     }
@@ -271,6 +275,7 @@ export default function ProductForm({
       name: values.name,
       slug: values.slug,
       price: values.price,
+      stock: values.stock,
       category: values.category,
       subCategory: values.subCategory,
       material: values.material,
@@ -489,18 +494,36 @@ export default function ProductForm({
           />
         </FormField>
 
-        <FormField
-          label="Size"
-          description="Optional size variant (e.g., small, medium, large)."
-          error={fieldErrors.size}
-        >
-          <Input
-            value={values.size}
-            onChange={(event) => setValue("size", event.target.value)}
-            placeholder="medium"
-            className="h-11 rounded-xl border-stone-200 bg-white px-4"
-          />
-        </FormField>
+        <FormGroup columns={2}>
+          <FormField
+            label="Size"
+            description="Optional size variant (e.g., small, medium, large)."
+            error={fieldErrors.size}
+          >
+            <Input
+              value={values.size}
+              onChange={(event) => setValue("size", event.target.value)}
+              placeholder="medium"
+              className="h-11 rounded-xl border-stone-200 bg-white px-4"
+            />
+          </FormField>
+
+          <FormField
+            label="Stock"
+            description="Whole-number inventory available for admin alerts and quick edits."
+            error={fieldErrors.stock}
+          >
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              value={values.stock}
+              onChange={(event) => setValue("stock", event.target.value)}
+              placeholder="24"
+              className="h-11 rounded-xl border-stone-200 bg-white px-4"
+            />
+          </FormField>
+        </FormGroup>
       </FormCard>
 
       <FormCard
@@ -597,6 +620,7 @@ export default function ProductForm({
               `Category: ${values.category || "Not set"}`,
               `Material: ${values.material || "Not set"}`,
               `Size: ${values.size || "Not set"}`,
+              `Stock: ${values.stock || "Not set"}`,
               `Images: ${values.images.filter((image) => image.trim()).length}`,
             ].join("\n")}
             className="min-h-28 rounded-2xl border-stone-200 bg-stone-50"

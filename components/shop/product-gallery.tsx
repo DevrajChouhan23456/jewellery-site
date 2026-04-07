@@ -13,7 +13,7 @@ interface ProductGalleryProps {
 export function ProductGallery({ images, productName, badge }: ProductGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const safeImages = images?.length ? images : ["/placeholder.jpg"];
+  const safeImages = images?.length ? images : ["/images/product-placeholder.svg"];
   const mainImage = safeImages[activeIndex] || safeImages[0];
 
   return (
@@ -31,7 +31,13 @@ export function ProductGallery({ images, productName, badge }: ProductGalleryPro
                 : "border-transparent hover:border-gray-300"
             }`}
           >
-            <Image src={img} alt={`${productName} ${idx}`} fill className="object-cover" />
+            <Image
+              src={img}
+              alt={`${productName} ${idx}`}
+              fill
+              sizes="90px"
+              className="object-cover"
+            />
           </button>
         ))}
       </div>
@@ -44,6 +50,7 @@ export function ProductGallery({ images, productName, badge }: ProductGalleryPro
           src={mainImage}
           alt={productName}
           fill
+          sizes="(max-width: 1024px) 100vw, 60vw"
           className="object-cover transition-transform duration-500 group-hover:scale-110"
         />
 

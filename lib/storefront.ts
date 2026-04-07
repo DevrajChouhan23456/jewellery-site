@@ -5,6 +5,20 @@ import type {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  defaultConciergeActions,
+  defaultConciergeEyebrow,
+  defaultConciergeTitle,
+  defaultReassuranceHighlights,
+  defaultServicePillars,
+  defaultStylingJournalEyebrow,
+  defaultStylingJournalTitle,
+  defaultStylingTips,
+} from "@/lib/storefront-homepage-defaults";
+import {
+  getSanityHomepageContent,
+  getSanityShopPageData,
+} from "@/sanity/lib/storefront";
 
 export type HomepageSectionKey =
   | "category"
@@ -205,6 +219,12 @@ export async function getHomepageCards(section: HomepageSectionKey) {
 }
 
 export async function getHomepageContent() {
+  const sanityContent = await getSanityHomepageContent();
+
+  if (sanityContent) {
+    return sanityContent;
+  }
+
   const [categories, trending, arrivals, gender, heroSlides, sectionRecords]: [
     HomepageCard[],
     HomepageCard[],
@@ -248,122 +268,26 @@ export async function getHomepageContent() {
       arrival: sectionMap.get("arrival") ?? normalizeHomepageSection("arrival"),
       gender: sectionMap.get("gender") ?? normalizeHomepageSection("gender"),
     },
-  };
-}
-
-export async function getStorefrontAdminData() {
-  const [heroSlides, homepageSections, curatedItems, shopPages]: [
-    HeroSlideRecord[],
-    HomepageSectionModel[],
-    CuratedItem[],
-    ShopPageRecord[],
-  ] =
-    await Promise.all([
-      prisma.slider.findMany({
-        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-        select: heroSlideSelect,
-      }),
-      prisma.homepageSection.findMany({
-        orderBy: { key: "asc" },
-      }),
-      prisma.curatedItem.findMany({
-        orderBy: [{ section: "asc" }, { order: "asc" }, { createdAt: "asc" }],
-      }),
-      prisma.shopPage.findMany({
-        orderBy: { title: "asc" },
-        select: shopPageSelect,
-      }),
-    ]);
-
-  return {
-    heroSlides: heroSlides.map(normalizeHeroSlide),
-    homepageSections: (
-      ["category", "trending", "arrival", "gender"] as HomepageSectionKey[]
-    ).map((key) =>
-      normalizeHomepageSection(
-        key,
-        homepageSections.find((section: HomepageSectionModel) => section.key === key),
-      ),
-    ),
-    homepageCards: {
-      category: curatedItems
-        .filter((item: CuratedItem) => item.section === "category")
-        .map((item: CuratedItem) => ({
-          id: item.id,
-          title: item.title,
-          subtitle: item.subtitle ?? "",
-          image: item.image ?? null,
-          link: item.link,
-          badge: item.badge ?? null,
-          order: item.order,
-        })),
-      trending: curatedItems
-        .filter((item: CuratedItem) => item.section === "trending")
-        .map((item: CuratedItem) => ({
-          id: item.id,
-          title: item.title,
-          subtitle: item.subtitle ?? "",
-          image: item.image ?? null,
-          link: item.link,
-          badge: item.badge ?? null,
-          order: item.order,
-        })),
-      arrival: curatedItems
-        .filter((item: CuratedItem) => item.section === "arrival")
-        .map((item: CuratedItem) => ({
-          id: item.id,
-          title: item.title,
-          subtitle: item.subtitle ?? "",
-          image: item.image ?? null,
-          link: item.link,
-          badge: item.badge ?? null,
-          order: item.order,
-        })),
-      gender: curatedItems
-        .filter((item: CuratedItem) => item.section === "gender")
-        .map((item: CuratedItem) => ({
-          id: item.id,
-          title: item.title,
-          subtitle: item.subtitle ?? "",
-          image: item.image ?? null,
-          link: item.link,
-          badge: item.badge ?? null,
-          order: item.order,
-        })),
-    },
-    shopPages: shopPages.map((page: ShopPageRecord) => ({
-      id: page.id,
-      slug: page.slug,
-      title: page.title,
-      subtitle: page.subtitle,
-      heroEyebrow: page.heroEyebrow ?? "",
-      heroTitle: page.heroTitle,
-      heroDescription: page.heroDescription,
-      heroImageUrl: page.heroImageUrl ?? "",
-      heroCtaLabel: page.heroCtaLabel,
-      heroCtaHref: page.heroCtaHref,
-      resultCount: page.resultCount,
-      features: page.features.map((feature) => ({
-        id: feature.id,
-        title: feature.title,
-        imageUrl: feature.imageUrl,
-        href: feature.href,
-        order: feature.order,
-      })),
-      products: page.products.map((product) => ({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        imageUrl: product.imageUrl ?? "",
-        badge: product.badge ?? "",
-        lowStockText: product.lowStockText ?? "",
-        order: product.order,
-      })),
+    servicePillars: defaultServicePillars.map((item) => ({ ...item })),
+    reassuranceHighlights: defaultReassuranceHighlights.map((item) => ({
+      ...item,
     })),
+    conciergeEyebrow: defaultConciergeEyebrow,
+    conciergeTitle: defaultConciergeTitle,
+    conciergeActions: defaultConciergeActions.map((item) => ({ ...item })),
+    stylingJournalEyebrow: defaultStylingJournalEyebrow,
+    stylingJournalTitle: defaultStylingJournalTitle,
+    stylingTips: [...defaultStylingTips],
   };
 }
 
 export async function getShopPageData(slug: string) {
+  const sanityPage = await getSanityShopPageData(slug);
+
+  if (sanityPage) {
+    return sanityPage;
+  }
+
   const page = await prisma.shopPage.findUnique({
     where: { slug },
     select: shopPageSelect,

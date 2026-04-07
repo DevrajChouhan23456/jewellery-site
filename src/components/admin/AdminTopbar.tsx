@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { studioPath } from "@/sanity/env";
 
 const primaryLinks = [
   {
@@ -74,6 +75,17 @@ export function AdminTopbar() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full border-stone-300 bg-white/80 px-3"
+                >
+                  <Link href={studioPath}>
+                    <Sparkles className="size-4" />
+                    Studio
+                  </Link>
+                </Button>
                 <Button
                   asChild
                   variant="outline"

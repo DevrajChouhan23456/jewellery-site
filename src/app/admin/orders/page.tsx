@@ -10,14 +10,14 @@ import { requireAdminPageAccess } from "@/server/auth/admin";
 import { getAdminOrders } from "@/server/services/admin/orders";
 
 interface AdminOrdersPageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     search?: string;
     status?: string;
     paymentStatus?: string;
     dateFrom?: string;
     dateTo?: string;
-  };
+  }>;
 }
 
 export default async function AdminOrdersPage({
@@ -25,12 +25,13 @@ export default async function AdminOrdersPage({
 }: AdminOrdersPageProps) {
   await requireAdminPageAccess("/admin/orders");
 
-  const page = parseInt(searchParams.page || "1");
-  const search = searchParams.search || "";
-  const status = searchParams.status || "";
-  const paymentStatus = searchParams.paymentStatus || "";
-  const dateFrom = searchParams.dateFrom || "";
-  const dateTo = searchParams.dateTo || "";
+  const resolvedSearchParams = await searchParams;
+  const page = Number.parseInt(resolvedSearchParams.page ?? "1", 10) || 1;
+  const search = resolvedSearchParams.search || "";
+  const status = resolvedSearchParams.status || "";
+  const paymentStatus = resolvedSearchParams.paymentStatus || "";
+  const dateFrom = resolvedSearchParams.dateFrom || "";
+  const dateTo = resolvedSearchParams.dateTo || "";
 
   const { orders, pagination } = await getAdminOrders({
     page,

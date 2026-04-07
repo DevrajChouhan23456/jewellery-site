@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type ProductGalleryProps = {
   images: string[];
@@ -15,16 +15,12 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
 
     return uniqueImages.length
       ? uniqueImages
-      : ["/images/product-placeholder.png"];
+      : ["/images/product-placeholder.svg"];
   }, [images]);
 
-  const [active, setActive] = useState(galleryImages[0]);
-
-  useEffect(() => {
-    setActive((current) =>
-      galleryImages.includes(current) ? current : galleryImages[0],
-    );
-  }, [galleryImages]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const safeActiveIndex = Math.min(activeIndex, galleryImages.length - 1);
+  const activeImage = galleryImages[safeActiveIndex];
 
   return (
     <div className="flex gap-4">
@@ -33,7 +29,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
           <button
             key={`${img}-${index}`}
             type="button"
-            onClick={() => setActive(img)}
+            onClick={() => setActiveIndex(index)}
             className="overflow-hidden rounded transition-transform duration-300 ease-in-out hover:scale-105"
           >
             <Image
@@ -50,8 +46,8 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
 
       <div className="relative h-[500px] w-[500px] overflow-hidden rounded-2xl bg-[#fff8ef] shadow-inner">
         <Image
-          key={active}
-          src={active}
+          key={activeImage}
+          src={activeImage}
           alt="Selected product image"
           width={500}
           height={500}

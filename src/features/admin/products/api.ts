@@ -8,6 +8,7 @@ export type ProductFormInitialData = {
   name: string;
   slug: string;
   price: number;
+  stock: number;
   category: string;
   subCategory: string | null;
   material: string;

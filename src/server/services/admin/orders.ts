@@ -1,6 +1,10 @@
-import type { Prisma } from "@prisma/client";
+import type { OrderStatus, Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import {
+  hydrateOrderWithShopPageProducts,
+  hydrateOrdersWithShopPageProducts,
+} from "@/server/orders/product-snapshots";
 
 type TrendingProduct = {
   id: string;
@@ -29,17 +33,10 @@ const adminOrderListSelect = {
   items: {
     select: {
       id: true,
+      productId: true,
       quantity: true,
       unitPrice: true,
       lineTotal: true,
-      product: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          images: true,
-        },
-      },
     },
   },
 } satisfies Prisma.OrderSelect;
@@ -78,17 +75,10 @@ const adminOrderDetailSelect = {
   items: {
     select: {
       id: true,
+      productId: true,
       quantity: true,
       unitPrice: true,
       lineTotal: true,
-      product: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          images: true,
-        },
-      },
     },
   },
 } satisfies Prisma.OrderSelect;
@@ -154,15 +144,17 @@ export async function getAdminOrders({
     prisma.order.count({ where }),
   ]);
 
+  const hydratedOrders = await hydrateOrdersWithShopPageProducts(orders);
+
   // Transform dates to strings for frontend compatibility
-  const transformedOrders = orders.map(order => ({
+  const transformedOrders = hydratedOrders.map(order => ({
     ...order,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
   }));
 
   return {
-    orders: transformedOrders as Array<Omit<typeof orders[number], 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }>,
+    orders: transformedOrders,
     pagination: {
       page,
       limit,
@@ -178,28 +170,33 @@ export async function getAdminOrderById(id: string) {
     select: adminOrderDetailSelect,
   });
 
-  return order;
+  return hydrateOrderWithShopPageProducts(order);
 }
 
 export async function updateOrderStatus(id: string, status: string) {
   const order = await prisma.order.update({
     where: { id },
-    data: { status: status as any },
+    data: { status: status as OrderStatus },
     select: adminOrderListSelect,
   });
 
+  const hydratedOrder = await hydrateOrderWithShopPageProducts(order);
+
+  if (!hydratedOrder) {
+    throw new Error("Updated order could not be hydrated.");
+  }
+
   // Transform dates to strings for frontend compatibility
   return {
-    ...order,
-    createdAt: order.createdAt.toISOString(),
-    updatedAt: order.updatedAt.toISOString(),
+    ...hydratedOrder,
+    createdAt: hydratedOrder.createdAt.toISOString(),
+    updatedAt: hydratedOrder.updatedAt.toISOString(),
   };
 }
 
 export async function getAdminDashboardStats() {
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [
     totalRevenue,
@@ -282,8 +279,10 @@ export async function getRecentOrders(limit: number = 10) {
     select: adminOrderListSelect,
   });
 
+  const hydratedOrders = await hydrateOrdersWithShopPageProducts(orders);
+
   // Transform dates to strings for frontend compatibility
-  const transformedOrders = orders.map(order => ({
+  const transformedOrders = hydratedOrders.map(order => ({
     ...order,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
@@ -293,28 +292,7 @@ export async function getRecentOrders(limit: number = 10) {
 }
 
 export async function getAdminAnalytics() {
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-  const [
-    dailyRevenue,
-    dailyOrders,
-    ordersByStatus,
-    topCategories,
-  ] = await prisma.$transaction([
-    // Daily revenue for last 30 days (simplified - just get total for now)
-    prisma.order.aggregate({
-      where: {
-        paymentStatus: "PAID",
-        createdAt: { gte: thirtyDaysAgo },
-      },
-      _sum: { totalAmount: true },
-      _count: true,
-    }),
-    // Daily orders count
-    prisma.order.count({
-      where: { createdAt: { gte: thirtyDaysAgo } },
-    }),
+  const [ordersByStatus, paidOrderItems] = await prisma.$transaction([
     // Orders by status
     prisma.order.groupBy({
       by: ["status"],
@@ -323,21 +301,39 @@ export async function getAdminAnalytics() {
     }),
     // Top categories by revenue (simplified)
     prisma.orderItem.findMany({
-      include: {
-        product: true,
-      },
       where: {
         order: {
           paymentStatus: "PAID",
         },
       },
+      select: {
+        productId: true,
+        lineTotal: true,
+      },
     }),
   ]);
 
+  const categoryProducts =
+    paidOrderItems.length === 0
+      ? []
+      : await prisma.shopPageProduct.findMany({
+          where: {
+            id: { in: Array.from(new Set(paidOrderItems.map((item) => item.productId))) },
+          },
+          select: {
+            id: true,
+            category: true,
+          },
+        });
+
+  const categoryByProductId = new Map(
+    categoryProducts.map((product) => [product.id, product.category]),
+  );
+
   // Process top categories
   const categoryRevenue: Record<string, number> = {};
-  topCategories.forEach((item: any) => {
-    const category = item.product?.category || "Unknown";
+  paidOrderItems.forEach((item) => {
+    const category = categoryByProductId.get(item.productId) || "Unknown";
     categoryRevenue[category] = (categoryRevenue[category] || 0) + item.lineTotal;
   });
 
@@ -482,32 +478,73 @@ export async function getFunnelMetrics(days: number = 30) {
 export async function getDynamicPricingSuggestions(productId?: string, category?: string, material?: string) {
   const thirtyDaysAgo = new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  // Get sales data for similar products
-  const similarProducts = await prisma.orderItem.findMany({
+  const paidOrderItems = await prisma.orderItem.findMany({
     where: {
       order: {
         paymentStatus: "PAID",
         createdAt: { gte: thirtyDaysAgo },
       },
-      product: {
-        ...(category ? { category } : {}),
-        ...(material ? { material } : {}),
-        ...(productId ? { id: { not: productId } } : {}),
-      },
     },
-    include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          category: true,
-          material: true,
-          type: true,
-        },
-      },
+    select: {
+      productId: true,
+      quantity: true,
     },
   });
+
+  const productIds = Array.from(new Set(paidOrderItems.map((item) => item.productId)));
+  const products =
+    productIds.length === 0
+      ? []
+      : await prisma.shopPageProduct.findMany({
+          where: { id: { in: productIds } },
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            category: true,
+            material: true,
+            type: true,
+          },
+        });
+
+  const productMap = new Map(products.map((product) => [product.id, product]));
+  const similarProducts = paidOrderItems
+    .map((item) => {
+      const product = productMap.get(item.productId);
+
+      if (!product) {
+        return null;
+      }
+
+      if (category && product.category !== category) {
+        return null;
+      }
+
+      if (material && product.material !== material) {
+        return null;
+      }
+
+      if (productId && product.id === productId) {
+        return null;
+      }
+
+      return {
+        ...item,
+        product,
+      };
+    })
+    .filter((item): item is {
+      productId: string;
+      quantity: number;
+      product: {
+        id: string;
+        name: string;
+        price: number;
+        category: string;
+        material: string;
+        type: string;
+      };
+    } => item !== null);
 
   if (similarProducts.length === 0) {
     return {
@@ -549,9 +586,12 @@ export async function getDynamicPricingSuggestions(productId?: string, category?
 export async function getDemandPrediction(days: number = 7) {
   const now = new Date();
   const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const rawPrisma = prisma as typeof prisma & {
+    $queryRaw<T>(query: TemplateStringsArray, ...values: unknown[]): Promise<T>;
+  };
 
   // Get daily order counts
-  const dailyOrders = await (prisma as any).$queryRaw`
+  const dailyOrders = await rawPrisma.$queryRaw<Array<{ date: Date; orders: bigint }>>`
     SELECT
       DATE(createdAt) as date,
       COUNT(*) as orders
@@ -560,7 +600,7 @@ export async function getDemandPrediction(days: number = 7) {
       AND createdAt >= ${startDate}
     GROUP BY DATE(createdAt)
     ORDER BY DATE(createdAt)
-  ` as Array<{ date: Date; orders: bigint }>;
+  `;
 
   // Convert to numbers and calculate trends
   const data = dailyOrders.map((row, index) => {
@@ -649,7 +689,7 @@ export async function getTrendingProducts(days: number = 7) {
   if (trending.length === 0) return [];
 
   const productIds = trending.map(t => t.productId);
-  const products = await prisma.product.findMany({
+  const products = await prisma.shopPageProduct.findMany({
     where: { id: { in: productIds } },
     select: {
       id: true,
@@ -736,7 +776,7 @@ export async function getSalesDropAlerts(days: number = 7) {
   if (drops.length === 0) return [];
 
   const productIds = drops.map(d => d.productId);
-  const products = await prisma.product.findMany({
+  const products = await prisma.shopPageProduct.findMany({
     where: { id: { in: productIds } },
     select: {
       id: true,

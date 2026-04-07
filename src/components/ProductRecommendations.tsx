@@ -1,9 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Recommendation {
   product: {
@@ -22,46 +23,54 @@ interface ProductRecommendationsProps {
   limit?: number;
 }
 
-export default function ProductRecommendations({ productId, limit = 4 }: ProductRecommendationsProps) {
+export default function ProductRecommendations({
+  productId,
+  limit = 4,
+}: ProductRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
-        const response = await fetch(`/api/recommendations?limit=${limit}`);
+        const params = new URLSearchParams({ limit: String(limit) });
+        if (productId) {
+          params.set("productId", productId);
+        }
+
+        const response = await fetch(`/api/recommendations?${params.toString()}`);
         const data = await response.json();
         setRecommendations(data.recommendations || []);
       } catch (error) {
-        console.error('Failed to fetch recommendations:', error);
+        console.error("Failed to fetch recommendations:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRecommendations();
-  }, [limit]);
+    void fetchRecommendations();
+  }, [limit, productId]);
 
   const trackClick = async (recommendationId: string) => {
     try {
-      await fetch('/api/recommendations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recommendationId, action: 'click' })
+      await fetch("/api/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recommendationId, action: "click" }),
       });
     } catch (error) {
-      console.error('Failed to track recommendation click:', error);
+      console.error("Failed to track recommendation click:", error);
     }
   };
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Array.from({ length: limit }).map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="bg-gray-200 aspect-square rounded-lg mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded mb-1"></div>
-            <div className="h-3 bg-gray-200 rounded"></div>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {Array.from({ length: limit }).map((_, index) => (
+          <div key={index} className="animate-pulse">
+            <div className="mb-2 aspect-square rounded-lg bg-gray-200" />
+            <div className="mb-1 h-4 rounded bg-gray-200" />
+            <div className="h-3 rounded bg-gray-200" />
           </div>
         ))}
       </div>
@@ -75,27 +84,42 @@ export default function ProductRecommendations({ productId, limit = 4 }: Product
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Recommended for You</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {recommendations.map((rec) => (
-          <Card key={rec.product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {recommendations.map((recommendation) => (
+          <Card
+            key={recommendation.product.id}
+            className="overflow-hidden transition-shadow hover:shadow-lg"
+          >
             <CardContent className="p-0">
               <Link
-                href={`/product/${rec.product.id}`}
-                onClick={() => trackClick(`${rec.product.id}_${Date.now()}`)}
+                href={`/product/${recommendation.product.id}`}
+                onClick={() =>
+                  trackClick(`${recommendation.product.id}_${Date.now()}`)
+                }
                 className="block"
               >
-                <div className="aspect-square relative overflow-hidden">
+                <div className="relative aspect-square overflow-hidden">
                   <Image
-                    src={rec.product.images[0] || '/placeholder.jpg'}
-                    alt={rec.product.name}
+                    src={
+                      recommendation.product.images[0] ||
+                      "/images/product-placeholder.svg"
+                    }
+                    alt={recommendation.product.name}
                     fill
-                    className="object-cover hover:scale-105 transition-transform"
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-cover transition-transform hover:scale-105"
                   />
                 </div>
                 <div className="p-3">
-                  <h4 className="font-medium text-sm line-clamp-2">{rec.product.name}</h4>
-                  <p className="text-lg font-bold text-primary mt-1">₹{rec.product.price}</p>
-                  <p className="text-xs text-gray-500 mt-1 capitalize">{rec.algorithm.replace('_', ' ')}</p>
+                  <h4 className="line-clamp-2 text-sm font-medium">
+                    {recommendation.product.name}
+                  </h4>
+                  <p className="mt-1 text-lg font-bold text-primary">
+                    INR {recommendation.product.price}
+                  </p>
+                  <p className="mt-1 text-xs capitalize text-gray-500">
+                    {recommendation.algorithm.replace("_", " ")}
+                  </p>
                 </div>
               </Link>
             </CardContent>

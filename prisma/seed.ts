@@ -426,6 +426,9 @@ const shopPageSeed = [
   },
 ];
 
+const adminCatalogStockPattern = [28, 18, 9, 14, 6, 24];
+const ringSizePattern = ["12", "14", "16", "18"];
+
 function buildSeededShopPageProduct(
   page: (typeof shopPageSeed)[number],
   product: (typeof shopPageSeed)[number]["products"][number],
@@ -452,6 +455,106 @@ function buildSeededShopPageProduct(
     category: "jewellery",
     material: "gold",
     type: "ring",
+  };
+}
+
+function inferCatalogType(productName: string) {
+  const normalizedName = productName.toLowerCase();
+
+  if (
+    normalizedName.includes("earring") ||
+    normalizedName.includes("stud") ||
+    normalizedName.includes("hoop") ||
+    normalizedName.includes("drop")
+  ) {
+    return "earrings";
+  }
+
+  if (normalizedName.includes("pendant")) {
+    return "pendant";
+  }
+
+  if (normalizedName.includes("necklace")) {
+    return "necklace";
+  }
+
+  if (normalizedName.includes("chain")) {
+    return "chain";
+  }
+
+  if (normalizedName.includes("bracelet")) {
+    return "bracelet";
+  }
+
+  if (normalizedName.includes("bangle")) {
+    return "bangle";
+  }
+
+  if (
+    normalizedName.includes("ring") ||
+    normalizedName.includes("band")
+  ) {
+    return "ring";
+  }
+
+  return "jewellery";
+}
+
+function inferCatalogMaterial(pageSlug: string, productName: string) {
+  const normalizedName = productName.toLowerCase();
+
+  if (
+    pageSlug === "diamond" ||
+    normalizedName.includes("diamond") ||
+    normalizedName.includes("solitaire") ||
+    normalizedName.includes("halo")
+  ) {
+    return "diamond";
+  }
+
+  return "gold";
+}
+
+function parseLowStockValue(lowStockText?: string) {
+  if (!lowStockText) {
+    return null;
+  }
+
+  const match = lowStockText.match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function buildSeededAdminCatalogProduct(
+  page: (typeof shopPageSeed)[number],
+  product: (typeof shopPageSeed)[number]["products"][number],
+  pageIndex: number,
+  productIndex: number,
+) {
+  const type = inferCatalogType(product.name);
+  const primaryImage = product.imageUrl ?? page.heroImageUrl ?? imageLibrary.women;
+  const parsedLowStock = parseLowStockValue(product.lowStockText);
+
+  return {
+    slug: toProductSlug(product.name),
+    name: product.name,
+    price: product.price,
+    category: page.slug,
+    subCategory: type === page.slug ? null : type,
+    material: inferCatalogMaterial(page.slug, product.name),
+    type,
+    size:
+      type === "ring"
+        ? ringSizePattern[(pageIndex + productIndex) % ringSizePattern.length]
+        : null,
+    stock:
+      parsedLowStock ??
+      adminCatalogStockPattern[
+        (pageIndex + productIndex) % adminCatalogStockPattern.length
+      ],
+    lowStockThreshold: 8,
+    images: [primaryImage, primaryImage],
+    description: `The ${product.name} brings ${page.title.toLowerCase()} styling into a polished everyday catalogue piece with a refined finish and gift-ready appeal.`,
+    embeddings: [],
   };
 }
 
@@ -568,6 +671,46 @@ async function seedShopPages() {
   }
 }
 
+async function seedAdminCatalogProducts() {
+  const catalogProducts = shopPageSeed.flatMap((page, pageIndex) =>
+    page.products.map((product, productIndex) =>
+      buildSeededAdminCatalogProduct(page, product, pageIndex, productIndex),
+    ),
+  );
+
+  const existingProducts = await prisma.product.findMany({
+    where: {
+      slug: {
+        in: catalogProducts.map((product) => product.slug),
+      },
+    },
+    select: {
+      slug: true,
+    },
+  });
+
+  const existingSlugSet = new Set(existingProducts.map((product) => product.slug));
+  const missingProducts = catalogProducts.filter(
+    (product) => !existingSlugSet.has(product.slug),
+  );
+
+  if (missingProducts.length === 0) {
+    return {
+      created: 0,
+      total: catalogProducts.length,
+    };
+  }
+
+  await prisma.product.createMany({
+    data: missingProducts,
+  });
+
+  return {
+    created: missingProducts.length,
+    total: catalogProducts.length,
+  };
+}
+
 async function main() {
   const defaultUsername = process.env.DEFAULT_ADMIN_USERNAME ?? "admin";
   const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD ?? "admin12345";
@@ -610,9 +753,10 @@ async function main() {
   });
 
   await seedShopPages();
+  const adminCatalogSeedResult = await seedAdminCatalogProducts();
 
   console.log(
-    "Seeded admin account, homepage sections, hero slides, and shop pages.",
+    `Seeded admin account, homepage sections, hero slides, shop pages, and ${adminCatalogSeedResult.created} admin catalog products (${adminCatalogSeedResult.total} available in seed data).`,
   );
 }
 

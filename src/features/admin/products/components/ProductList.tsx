@@ -214,8 +214,13 @@ export default function ProductList({ query, filters = {}, children }: ProductLi
                   <SelectContent>
                     <SelectItem value="">All categories</SelectItem>
                     <SelectItem value="jewellery">Jewellery</SelectItem>
-                    <SelectItem value="watches">Watches</SelectItem>
-                    <SelectItem value="accessories">Accessories</SelectItem>
+                    <SelectItem value="gold">Gold</SelectItem>
+                    <SelectItem value="diamond">Diamond</SelectItem>
+                    <SelectItem value="earrings">Earrings</SelectItem>
+                    <SelectItem value="rings">Rings</SelectItem>
+                    <SelectItem value="gifting">Gifting</SelectItem>
+                    <SelectItem value="glamdays">Daily Wear</SelectItem>
+                    <SelectItem value="thejoydressing">Collections</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

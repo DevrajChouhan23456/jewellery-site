@@ -78,14 +78,6 @@ export async function createRazorpayPaymentOrder(input: {
             productId: true,
             quantity: true,
             unitPrice: true,
-            product: {
-              select: {
-                id: true,
-                name: true,
-                images: true,
-                price: true,
-              },
-            },
           },
         },
       },
@@ -310,17 +302,8 @@ export async function verifyRazorpayPayment(input: {
           razorpaySignature: input.razorpaySignature,
           status: order.status === "PENDING" ? "CONFIRMED" : order.status,
         },
-        include: {
-          user: {
-            select: { email: true, phone: true, name: true }
-          },
-          items: {
-            include: {
-              product: {
-                select: { name: true, price: true }
-              }
-            }
-          }
+        select: {
+          id: true,
         }
       });
 

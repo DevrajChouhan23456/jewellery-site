@@ -289,9 +289,10 @@ export default async function AdminDashboardPage() {
                   <div className="flex items-center gap-3">
                     <div className="relative size-14 overflow-hidden rounded-2xl border border-stone-200 bg-white">
                       <Image
-                        src={product?.images?.[0] || "/placeholder.jpg"}
+                        src={product?.images?.[0] || "/images/product-placeholder.svg"}
                         alt={product?.name || "Top product"}
                         fill
+                        sizes="56px"
                         unoptimized
                         className="object-cover"
                       />

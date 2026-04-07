@@ -8,6 +8,7 @@ const MAX_TAXONOMY_VALUE_LENGTH = 60;
 const MAX_PRODUCT_IMAGE_COUNT = 8;
 const MAX_PRODUCT_IMAGE_LENGTH = 2_048;
 const MAX_PRODUCT_PRICE = 10_000_000;
+const MAX_PRODUCT_STOCK = 100_000;
 
 const productImagePrefixes = ["http://", "https://", "/"] as const;
 
@@ -111,6 +112,13 @@ export const createProductSchema = z.object({
     .int("Price must be a whole number.")
     .min(0, "Price cannot be negative.")
     .max(MAX_PRODUCT_PRICE, "Price exceeds the supported limit."),
+  stock: z.coerce
+    .number({
+      invalid_type_error: "Stock must be a number.",
+    })
+    .int("Stock must be a whole number.")
+    .min(0, "Stock cannot be negative.")
+    .max(MAX_PRODUCT_STOCK, "Stock exceeds the supported limit."),
   category: taxonomySchema("Category"),
   subCategory: optionalTaxonomySchema,
   material: taxonomySchema("Material"),

@@ -75,7 +75,7 @@ export default function WishlistGrid({ items: initialItems }: WishlistGridProps)
       id: wishlistItem.product.id,
       name: wishlistItem.product.name,
       price: wishlistItem.product.price,
-      imageUrl: wishlistItem.product.images[0] ?? "/images/product-placeholder.png",
+      imageUrl: wishlistItem.product.images[0] ?? "/images/product-placeholder.svg",
     });
     openCart();
 
@@ -99,7 +99,7 @@ export default function WishlistGrid({ items: initialItems }: WishlistGridProps)
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
       {visibleItems.map((item) => {
-        const imageUrl = item.product?.images[0] ?? "/images/product-placeholder.png";
+        const imageUrl = item.product?.images[0] ?? "/images/product-placeholder.svg";
 
         return (
           <div

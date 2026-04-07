@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, Clock, Package, Truck } from "lucide-react";
 
@@ -65,6 +66,21 @@ interface OrderTrackingPageProps {
   params: Promise<{ id: string }>;
 }
 
+type ShippingAddress = {
+  street?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+};
+
+function getShippingAddress(value: unknown): ShippingAddress | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  return value as ShippingAddress;
+}
+
 export default async function OrderTrackingPage({ params }: OrderTrackingPageProps) {
   const { id } = await params;
   const order = await getAdminOrderById(id);
@@ -86,6 +102,7 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
   }
 
   const currentStep = getStatusStep(order.status);
+  const shippingAddress = getShippingAddress(order.shippingAddress);
   const steps = [
     { status: "PENDING", label: "Order Placed", description: "Your order has been received" },
     { status: "CONFIRMED", label: "Confirmed", description: "Your order has been confirmed" },
@@ -171,15 +188,21 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
               <div className="divide-y divide-stone-100">
                 {order.items.map((item) => (
                   <div key={item.id} className="flex items-center gap-4 p-6">
-                    <div className="size-16 flex-shrink-0 overflow-hidden rounded-lg">
-                      <img
-                        src={item.product.images?.[0] || "/placeholder.jpg"}
+                    <div className="relative size-16 flex-shrink-0 overflow-hidden rounded-lg">
+                      <Image
+                        src={item.product.images?.[0] || "/images/product-placeholder.svg"}
                         alt={item.product.name}
-                        className="size-full object-cover"
+                        fill
+                        sizes="64px"
+                        unoptimized
+                        className="object-cover"
                       />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-medium text-stone-950">{item.product.name}</h3>
+                      {item.product.isArchived ? (
+                        <p className="text-xs text-stone-500">Archived from the live catalog</p>
+                      ) : null}
                       <p className="text-sm text-stone-600">Quantity: {item.quantity}</p>
                     </div>
                     <div className="text-right">
@@ -242,7 +265,7 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
             </section>
 
             {/* Shipping Address */}
-            {order.shippingAddress && (
+            {shippingAddress ? (
               <section className="mt-8 overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 backdrop-blur">
                 <div className="border-b border-stone-100 px-6 py-5 sm:px-8">
                   <h2 className="text-xl font-semibold text-stone-950">Shipping Address</h2>
@@ -250,13 +273,13 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
                 <div className="px-6 py-5 sm:px-8">
                   <div className="text-sm text-stone-600">
                     <p className="font-medium text-stone-950">{order.user?.name}</p>
-                    <p>{(order.shippingAddress as any)?.street}</p>
-                    <p>{(order.shippingAddress as any)?.city}, {(order.shippingAddress as any)?.state} {(order.shippingAddress as any)?.pincode}</p>
+                    <p>{shippingAddress.street}</p>
+                    <p>{shippingAddress.city}, {shippingAddress.state} {shippingAddress.pincode}</p>
                     <p className="mt-2">{order.user?.phone}</p>
                   </div>
                 </div>
               </section>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

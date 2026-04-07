@@ -25,8 +25,26 @@ type CatalogProduct = {
   slug?: string;
 };
 
+type CatalogFeature = {
+  id: string;
+  title: string;
+  imageUrl?: string | null;
+  href: string;
+  order: number;
+};
+
 type CatalogPageData = {
   slug: string;
+  title?: string | null;
+  subtitle?: string | null;
+  heroEyebrow?: string | null;
+  heroTitle?: string | null;
+  heroDescription?: string | null;
+  heroImageUrl?: string | null;
+  heroCtaLabel?: string | null;
+  heroCtaHref?: string | null;
+  resultCount?: number;
+  features?: CatalogFeature[];
   products: CatalogProduct[];
 };
 
@@ -125,6 +143,24 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
     (filters.minPrice ? 1 : 0) +
     (filters.maxPrice ? 1 : 0);
 
+  const featureTiles =
+    page.features && page.features.length > 0
+      ? page.features
+      : ["Earrings", "Pendants", "Rings", "Gifts"].map((item, index) => ({
+          id: `fallback-feature-${index + 1}`,
+          title: item,
+          imageUrl: null,
+          href: `/shop/${page.slug}`,
+          order: index + 1,
+        }));
+
+  const hasActiveFetchFilters =
+    filters.sort !== "latest" ||
+    Boolean(filters.minPrice) ||
+    Boolean(filters.maxPrice) ||
+    filters.materials.length > 0 ||
+    filters.categories.length > 0;
+
   // 🔥 INFINITE SCROLL LOGIC
   const loadMoreProducts = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -185,8 +221,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
 
   // 🔥 FETCH PRODUCTS
   useEffect(() => {
-    // If page.products is already populated (from ShopPageProduct), don't fetch API
-    if (page.products && page.products.length > 0) {
+    if (!hasActiveFetchFilters && page.products && page.products.length > 0) {
       setProducts(page.products);
       setHasMore(page.products.length >= 9);
       return;
@@ -197,7 +232,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
 
       const params = new URLSearchParams();
       params.set("slug", page.slug);
-      params.set("page", String(filters.page));
+      params.set("page", "1");
       params.set("sort", filters.sort);
 
       if (filters.minPrice) params.set("minPrice", filters.minPrice);
@@ -225,7 +260,16 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
     }
 
     fetchProducts();
-  }, [filters.sort, filters.minPrice, filters.maxPrice, filters.materials, filters.categories, page.slug]);
+  }, [
+    filters.sort,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.materials,
+    filters.categories,
+    hasActiveFetchFilters,
+    page.products,
+    page.slug,
+  ]);
 
   // 🔥 SYNC URL
   useEffect(() => {
@@ -245,6 +289,19 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
   return (
     <>
       <section className="relative mb-8 overflow-hidden border-b border-[#832729]/10 bg-linear-to-r from-[#fff8ef] via-[#fff4eb] to-[#ffe8e6] py-14">
+        {page.heroImageUrl ? (
+          <div className="absolute inset-0">
+            <Image
+              src={page.heroImageUrl}
+              alt={page.heroTitle ?? `${page.slug} collection`}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-linear-to-r from-[#fff9f1]/95 via-[#fff5ed]/88 to-[#2c160d]/78" />
+          </div>
+        ) : null}
         <div className="pointer-events-none absolute inset-0 opacity-35">
           <div className="absolute -left-20 top-0 h-56 w-56 rounded-full bg-[#832729]/10 blur-3xl" />
           <div className="absolute right-0 top-8 h-64 w-64 rounded-full bg-[#fe8bbb]/20 blur-3xl" />
@@ -253,31 +310,56 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border border-[#832729]/20 bg-white/70 px-3 py-1 text-xs font-medium text-[#832729]">
               <Sparkles className="size-3.5" />
-              Curated for your style
+              {page.heroEyebrow || "Curated for your style"}
             </p>
-            <h1 className="mt-3 text-3xl font-semibold capitalize text-stone-900 md:text-4xl">
-              {page.slug.replace(/-/g, " ")} Collection
+            <h1 className="mt-3 text-3xl font-semibold text-stone-900 md:text-4xl">
+              {page.heroTitle || `${page.title ?? page.slug} Collection`}
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-stone-600">
-              Discover handcrafted pieces designed for everyday elegance and special occasions.
-              Use filters to quickly find the perfect match by material, category, and price.
+              {page.heroDescription ||
+                "Discover handcrafted pieces designed for everyday elegance and special occasions. Use filters to quickly find the perfect match by material, category, and price."}
             </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Link
+                href={page.heroCtaHref || `/shop/${page.slug}`}
+                className="inline-flex items-center gap-2 rounded-full bg-[#832729] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#6d2022]"
+              >
+                {page.heroCtaLabel || "Shop now"}
+                <ArrowRight className="size-4" />
+              </Link>
+              {page.subtitle ? (
+                <p className="text-sm text-stone-500">{page.subtitle}</p>
+              ) : null}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {["Earrings", "Pendants", "Rings", "Gifts"].map((item) => (
+            {featureTiles.map((item) => (
               <MagicCard
-                key={item}
+                key={item.id}
                 className="rounded-2xl"
                 gradientFrom="#832729"
                 gradientTo="#FE8BBB"
                 gradientOpacity={0.08}
                 gradientSize={180}
               >
-                <div className="rounded-2xl border border-white/80 bg-white/85 p-4 text-center shadow-sm">
-                  <div className="mb-2 h-16 rounded-xl bg-linear-to-br from-[#832729]/10 to-[#fe8bbb]/15" />
-                  <p className="text-sm font-medium text-stone-800">{item}</p>
-                </div>
+                <Link
+                  href={item.href}
+                  className="block rounded-2xl border border-white/80 bg-white/85 p-4 text-center shadow-sm"
+                >
+                  <div className="relative mb-2 h-16 overflow-hidden rounded-xl bg-linear-to-br from-[#832729]/10 to-[#fe8bbb]/15">
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.title}
+                        fill
+                        sizes="240px"
+                        className="object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <p className="text-sm font-medium text-stone-800">{item.title}</p>
+                </Link>
               </MagicCard>
             ))}
           </div>
@@ -371,9 +453,16 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
 
             {/* TOP BAR */}
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold capitalize text-stone-900">
-                {page.slug.replace(/-/g, " ")}
-              </h2>
+              <div>
+                <h2 className="text-xl font-semibold text-stone-900">
+                  {page.title ?? page.slug.replace(/-/g, " ")}
+                </h2>
+                {page.resultCount !== undefined ? (
+                  <p className="mt-1 text-sm text-stone-500">
+                    {page.resultCount} matching products
+                  </p>
+                ) : null}
+              </div>
               <div className="flex items-center gap-2">
                 <Sheet open={isMobileFilterOpen} onOpenChange={setIsMobileFilterOpen}>
                   <SheetTrigger asChild>
@@ -578,7 +667,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                         {/* IMAGE */}
                         <div className="relative h-64 bg-[#f8f8f8] rounded-t-2xl overflow-hidden">
                           <Image
-                            src={product.imageUrl || "/placeholder.jpg"}
+                            src={product.imageUrl || "/images/product-placeholder.svg"}
                             alt={product.name}
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"

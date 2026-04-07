@@ -130,13 +130,13 @@ export async function POST(request: NextRequest) {
         // Update order to PAID if webhook amount matches
         const order = await prisma.order.findUnique({
           where: { id: orderId },
-          include: {
-            user: { select: { email: true, phone: true, name: true } },
-            items: {
-              include: {
-                product: { select: { name: true, price: true } },
-              },
-            },
+          select: {
+            id: true,
+            cartId: true,
+            paymentStatus: true,
+            status: true,
+            totalAmount: true,
+            userId: true,
           },
         });
 

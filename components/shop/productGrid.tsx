@@ -43,9 +43,10 @@ export function ProductGrid({ products }: ProductGridProps) {
               {/* Image */}
               <div className="relative h-[300px] overflow-hidden">
                 <Image
-                  src={product.imageUrl || "/placeholder.jpg"}
+                  src={product.imageUrl || "/images/product-placeholder.svg"}
                   alt={product.name}
                   fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
                   className="object-cover transition duration-700 group-hover:scale-110"
                 />
 

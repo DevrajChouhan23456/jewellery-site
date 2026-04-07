@@ -3,11 +3,15 @@ import { Metadata } from "next";
 import SearchResults from "@/components/search/SearchResults";
 
 interface SearchPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export function generateMetadata({ searchParams }: SearchPageProps): Metadata {
-  const query = typeof searchParams.q === "string" ? searchParams.q : "";
+export async function generateMetadata({
+  searchParams,
+}: SearchPageProps): Promise<Metadata> {
+  const resolvedSearchParams = await searchParams;
+  const query =
+    typeof resolvedSearchParams.q === "string" ? resolvedSearchParams.q : "";
 
   return {
     title: query ? `Search results for "${query}"` : "Search",
@@ -18,8 +22,9 @@ export function generateMetadata({ searchParams }: SearchPageProps): Metadata {
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const params = await searchParams;
-  const query = typeof params.q === "string" ? params.q : "";
+  const resolvedSearchParams = await searchParams;
+  const query =
+    typeof resolvedSearchParams.q === "string" ? resolvedSearchParams.q : "";
 
   return (
     <div className="min-h-screen bg-gray-50">

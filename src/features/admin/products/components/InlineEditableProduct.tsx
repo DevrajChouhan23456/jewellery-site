@@ -58,6 +58,7 @@ export default function InlineEditableProduct({ product, isSelected = false, onS
         name: product.name,
         slug: product.slug,
         price: newPrice,
+        stock: newStock,
         category: product.category,
         subCategory: product.subCategory,
         material: product.material,
