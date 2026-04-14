@@ -21,10 +21,10 @@ export default function NewArrivalsShowcase({
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10 md:mb-12">
           <h2 className="text-3xl md:text-[42px] font-serif tracking-tight text-[#333] mb-2">
-            {section.title || "Tanishq Collections"}
+            {section.title || "Auraa collections"}
           </h2>
           <p className="text-gray-500 text-base md:text-lg font-serif">
-            {section.subtitle || section.description || "Explore our newly launched collection"}
+            {section.subtitle || section.description || "Explore our latest artificial jewellery drops"}
           </p>
         </div>
 
@@ -97,14 +97,14 @@ export default function NewArrivalsShowcase({
             >
               <Image
                 src={itemRightBottom?.image || "/images/sbg-kids.webp"}
-                alt={itemRightBottom?.title || "More Collections"}
+                alt={itemRightBottom?.title || "More new arrivals"}
                 fill
                 sizes="(max-width: 768px) 100vw, 55vw"
                 className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105 opacity-80 mix-blend-luminosity"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-8 bg-black/10 group-hover:bg-black/0 transition-colors duration-500">
                 <h3 className="text-3xl text-white font-serif italic drop-shadow-sm mb-3">
-                  {itemRightBottom?.title || "Discover Our Legacy"}
+                  {itemRightBottom?.title || "More new arrivals"}
                 </h3>
                 <span className="bg-white/20 backdrop-blur-sm border border-white/40 text-white px-6 py-2 text-xs font-bold tracking-[0.15em] transition hover:bg-white/30 uppercase mt-2 group-hover:bg-white text-[#832729]">
                   Shop Now

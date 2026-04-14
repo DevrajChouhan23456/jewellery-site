@@ -20,9 +20,10 @@ export async function POST(request: Request) {
   const result = await checkout(parsedBody.data);
 
   if ("error" in result) {
+    const { status, ...payload } = result;
     return NextResponse.json(
-      { error: result.error },
-      { status: result.status },
+      payload,
+      { status },
     );
   }
 

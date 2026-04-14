@@ -2,18 +2,27 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { hasCustomSiteLogo } from "@/lib/site-identity";
 
 type LogoSectionProps = {
   logoUrl: string;
+  siteName: string;
+  shortName: string;
+  tagline: string;
 };
 
-const LogoSection = ({ logoUrl }: LogoSectionProps) => (
+const LogoSection = ({
+  logoUrl,
+  siteName,
+  shortName,
+  tagline,
+}: LogoSectionProps) => (
   <Link href="/" className="flex shrink-0 items-center">
-    {logoUrl ? (
+    {hasCustomSiteLogo({ logoUrl }) ? (
       <div className="relative h-10 w-36 overflow-hidden">
         <Image
           src={logoUrl}
-          alt="Tanishq"
+          alt={siteName}
           fill
           priority
           sizes="(max-width: 768px) 100vw, 200px"
@@ -21,9 +30,12 @@ const LogoSection = ({ logoUrl }: LogoSectionProps) => (
         />
       </div>
     ) : (
-      <div className="relative h-12 w-32 flex items-center justify-center">
-        <span className="text-[#832729] font-serif text-2xl tracking-wider font-bold">
-          TANISHQ
+      <div className="flex h-12 flex-col justify-center">
+        <span className="font-serif text-2xl font-bold tracking-[0.28em] text-[#832729]">
+          {shortName}
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-500">
+          {tagline}
         </span>
       </div>
     )}

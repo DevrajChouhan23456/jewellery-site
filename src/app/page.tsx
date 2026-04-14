@@ -20,13 +20,18 @@ import SignatureStoriesSection from "@/components/SignatureStoriesSection";
 import HeroSection from "@/components/slider";
 import type { HomePageIconKey } from "@/lib/storefront-homepage-defaults";
 import { getHomepageContent } from "@/lib/storefront";
+import { getSiteIdentity } from "@/server/services/site-identity";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Tanishq | Best Jewellery Online",
-  description: "Explore the latest collections of fine jewellery at Tanishq.",
-};
+export async function generateMetadata() {
+  const siteIdentity = await getSiteIdentity();
+
+  return {
+    title: `${siteIdentity.shortName} | Artificial Jewellery Online`,
+    description: `Explore artificial jewellery, gifting picks, and occasion-ready style edits at ${siteIdentity.siteName}.`,
+  };
+}
 
 const iconMap: Record<HomePageIconKey, LucideIcon> = {
   shieldCheck: ShieldCheck,
@@ -49,7 +54,8 @@ export default async function Home() {
         stories={homepageContent.heroSlides.map((slide) => ({
           id: slide.id,
           title: slide.title ?? "Signature Story",
-          subtitle: slide.subtitle ?? "Explore featured jewellery stories.",
+          subtitle:
+            slide.subtitle ?? "Explore featured artificial jewellery edits.",
           imageUrl: slide.imageUrl,
           href: slide.ctaHref ?? "/shop/jewellery",
         }))}

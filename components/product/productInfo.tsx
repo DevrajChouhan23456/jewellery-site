@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Heart, Check, Shield, Truck } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
+import { motion } from "motion/react";
 import toast from "react-hot-toast";
 
 import AddToCartButton from "@/components/add-to-cart-button";
 import { CountdownTimer, useFomoTimer } from "@/components/countdown-timer";
+import { Badge } from "@/components/ui/badge";
+import { formatMaterialLabel } from "@/lib/brand-copy";
 import { cn } from "@/lib/utils";
 
 type ProductInfoProps = {
@@ -15,144 +17,134 @@ type ProductInfoProps = {
     name: string;
     price: number;
     imageUrl: string;
+    material: string;
     sizes: string[];
   };
 };
 
-const WISHLIST_KEY = "luxury-wishlist-v1";
-
 export default function ProductInfo({ product }: ProductInfoProps) {
-  const [size, setSize] = useState(product.sizes[0] ?? "");
+  const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? "");
   const [wishlisted, setWishlisted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
   const showTimer = useFomoTimer();
 
   useEffect(() => {
-    // Check if product is in wishlist via API
     const checkWishlist = async () => {
       try {
-        const response = await fetch(`/api/wishlist/check?productId=${product.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setWishlisted(data.inWishlist);
+        const response = await fetch(
+          `/api/wishlist/check?productId=${product.id}`,
+        );
+
+        if (!response.ok) {
+          return;
         }
+
+        const data = await response.json();
+        setWishlisted(data.inWishlist);
       } catch {
-        // Ignore errors, default to false
+        // Ignore wishlist read errors and keep the default state.
       }
     };
 
-    checkWishlist();
+    void checkWishlist();
   }, [product.id]);
 
   const toggleWishlist = async () => {
-    if (loading) return;
+    if (loadingWishlist) {
+      return;
+    }
 
-    // Instant feedback - update UI immediately
-    const newWishlistedState = !wishlisted;
-    setWishlisted(newWishlistedState);
-    setFeedback(newWishlistedState ? "Added to wishlist!" : "Removed from wishlist");
-
-    // Clear feedback after animation
-    setTimeout(() => setFeedback(null), 2000);
-
-    setLoading(true);
+    const nextState = !wishlisted;
+    setWishlisted(nextState);
+    setLoadingWishlist(true);
 
     try {
-      const endpoint = newWishlistedState ? "/api/wishlist/add" : "/api/wishlist/remove";
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product.id }),
-      });
+      const response = await fetch(
+        nextState ? "/api/wishlist/add" : "/api/wishlist/remove",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productId: product.id }),
+        },
+      );
 
-      if (response.ok) {
-        toast.success(newWishlistedState ? "Added to wishlist" : "Removed from wishlist");
-      } else {
-        // Revert on error
-        setWishlisted(!newWishlistedState);
-        setFeedback(null);
-        toast.error("Unable to update wishlist right now");
+      if (!response.ok) {
+        throw new Error("Unable to update wishlist");
       }
+
+      toast.success(nextState ? "Saved to wishlist" : "Removed from wishlist");
     } catch {
-      // Revert on error
-      setWishlisted(!newWishlistedState);
-      setFeedback(null);
+      setWishlisted(!nextState);
       toast.error("Unable to update wishlist right now");
     } finally {
-      setLoading(false);
+      setLoadingWishlist(false);
     }
   };
 
-  const badgeItems = useMemo(
-    () => [
-      { icon: Shield, label: "100% Certified Jewellery" },
-      { icon: Check, label: "Easy 30-Day Returns" },
-      { icon: Truck, label: "Free Insured Shipping" },
-    ],
-    [],
-  );
+  const assuranceItems = [
+    {
+      icon: ShieldCheck,
+      title: `${formatMaterialLabel(product.material)} finish`,
+      description: "Quality-checked styling with secure order validation.",
+    },
+    {
+      icon: Truck,
+      title: "Careful delivery",
+      description: "Fast doorstep delivery across India for prepaid orders.",
+    },
+    {
+      icon: Sparkles,
+      title: "Gift-friendly packing",
+      description: "Packed to feel polished and occasion-ready when it arrives.",
+    },
+  ] as const;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-3">
-        <div className="rounded-lg border border-[#e5dfd5] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#8b6f47]">
-          {size ? `Selected Size: ${size}` : "Select Size"}
-        </div>
-
-        {showTimer && (
-          <CountdownTimer className="self-center" />
-        )}
-
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <Badge
+          variant="outline"
+          className="rounded-full border-stone-200 bg-stone-50 px-3 py-1 text-stone-700"
+        >
+          {selectedSize ? `Selected option: ${selectedSize}` : "Choose an option"}
+        </Badge>
+        <Badge
+          variant="outline"
+          className="rounded-full border-amber-200 bg-amber-50 px-3 py-1 text-amber-900"
+        >
+          Secure checkout enabled
+        </Badge>
+        {showTimer ? (
+          <CountdownTimer className="border border-rose-200 bg-rose-500 px-3 py-1.5 text-xs font-semibold shadow-none" />
+        ) : null}
         <motion.button
           type="button"
           onClick={toggleWishlist}
-          aria-pressed={wishlisted}
-          whileTap={{ scale: 0.95 }}
-          animate={{
-            scale: wishlisted ? 1.05 : 1,
-            backgroundColor: wishlisted ? "rgba(139, 111, 71, 0.1)" : "white"
-          }}
-          transition={{ duration: 0.2 }}
+          disabled={loadingWishlist}
+          whileTap={{ scale: 0.98 }}
+          whileHover={{ y: -1 }}
           className={cn(
-            "relative inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-all duration-300 ease-in-out overflow-hidden",
+            "ml-auto inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60",
             wishlisted
-              ? "border-[#8b6f47] bg-[#8b6f47]/10 text-[#8b6f47] shadow-sm"
-              : "border-slate-300 bg-white text-slate-700 hover:bg-[#f5ebdb]",
+              ? "border-amber-300 bg-amber-50 text-amber-900"
+              : "border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-50",
           )}
         >
-          {/* Feedback animation overlay */}
-          <AnimatePresence>
-            {feedback && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute inset-0 bg-green-500/20 flex items-center justify-center"
-              >
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 0.5 }}
-                >
-                  ✨
-                </motion.div>
-              </motion.div>
+          <Heart
+            className={cn(
+              "size-4",
+              wishlisted ? "fill-current text-amber-700" : "text-stone-400",
             )}
-          </AnimatePresence>
-
-          <motion.div
-            animate={{ scale: wishlisted ? [1, 1.2, 1] : 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Heart className={cn("h-4 w-4", wishlisted ? "fill-[#8b6f47] text-[#8b6f47]" : "text-slate-400")} />
-          </motion.div>
-          <span className="relative z-10">
-            {loading ? "Updating..." : wishlisted ? "Wishlisted" : "Add to Wishlist"}
-          </span>
+          />
+          {loadingWishlist
+            ? "Updating"
+            : wishlisted
+              ? "Saved to wishlist"
+              : "Save for later"}
         </motion.button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <AddToCartButton
           product={{
             id: product.id,
@@ -160,27 +152,105 @@ export default function ProductInfo({ product }: ProductInfoProps) {
             name: product.name,
             price: product.price,
           }}
-          className="rounded-xl border border-[#e5dfd5] bg-[#8b6f47] px-5 py-3 text-sm font-bold uppercase tracking-wider text-white transition duration-300 ease-in-out hover:scale-[1.02]"
+          label="Add to Bag"
+          className="h-12 rounded-full border border-stone-200 bg-white text-stone-950 shadow-[0_20px_45px_-30px_rgba(28,25,23,0.22)] hover:bg-stone-100"
         />
 
-        <button
-          type="button"
-          onClick={toggleWishlist}
-          className="rounded-xl border border-[#e5dfd5] bg-white px-5 py-3 text-sm font-semibold text-[#1a1a1a] transition duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-lg"
-        >
-          {wishlisted ? "Wishlisted" : "Add to Wishlist"}
-        </button>
+        <AddToCartButton
+          product={{
+            id: product.id,
+            imageUrl: product.imageUrl,
+            name: product.name,
+            price: product.price,
+          }}
+          label="Buy Now"
+          openCartOnSuccess={false}
+          redirectToCheckout
+          className="h-12 rounded-full border border-amber-200 bg-[linear-gradient(135deg,#fff6df_0%,#f4d79f_48%,#e4b86a_100%)] text-stone-950 shadow-[0_24px_48px_-30px_rgba(180,130,45,0.45)] hover:border-amber-300 hover:bg-[linear-gradient(135deg,#fff7e4_0%,#f1cf8a_50%,#ddb160_100%)]"
+        />
       </div>
 
-      <div className="grid grid-cols-1 gap-2 rounded-2xl border border-[#e5dfd5] bg-[#faf7f2] p-4 text-sm text-[#1a1a1a]">
-        {badgeItems.map((item) => (
-          <div key={item.label} className="flex items-center gap-2 text-[#4f4f4f]">
-            <item.icon className="h-4 w-4 text-[#8b6f47]" />
-            <span>{item.label}</span>
+      <p className="text-sm leading-6 text-stone-500">
+        Buy Now takes you directly to checkout so you can confirm address,
+        payment, and gifting notes without an extra step.
+      </p>
+
+      <a
+        href="#details"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-900 underline-offset-4 transition hover:text-amber-950 hover:underline"
+      >
+        Scroll to full product details
+        <ChevronDown className="size-4 opacity-80" aria-hidden />
+      </a>
+
+      <div className="rounded-[1.5rem] border border-stone-200/80 bg-stone-50/70 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">
+              Size and fit
+            </p>
+            <p className="mt-1 text-sm text-stone-600">
+              Pick a starting option. We can confirm finer fit details during checkout.
+            </p>
           </div>
-        ))}
+          <p className="text-xs font-medium text-stone-500">
+            Need a sizing note? Add it at checkout.
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {product.sizes.map((sizeOption) => {
+            const isSelected = sizeOption === selectedSize;
+
+            return (
+              <button
+                key={sizeOption}
+                type="button"
+                onClick={() => setSelectedSize(sizeOption)}
+                className={cn(
+                  "rounded-[1rem] border px-4 py-3 text-left text-sm font-medium transition-all duration-300",
+                  isSelected
+                    ? "border-stone-950 bg-stone-950 text-white shadow-[0_18px_42px_-34px_rgba(28,25,23,0.8)]"
+                    : "border-white bg-white text-stone-700 hover:-translate-y-0.5 hover:border-amber-300 hover:text-stone-950 hover:shadow-[0_18px_42px_-34px_rgba(28,25,23,0.3)]",
+                )}
+              >
+                <span className="block">{sizeOption}</span>
+                <span
+                  className={cn(
+                    "mt-1 block text-xs",
+                    isSelected ? "text-stone-300" : "text-stone-500",
+                  )}
+                >
+                  Ready to style
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {assuranceItems.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <div
+              key={item.title}
+              className="rounded-[1.5rem] border border-stone-200/80 bg-white/90 p-4 shadow-[0_18px_50px_-40px_rgba(28,25,23,0.28)]"
+            >
+              <div className="flex size-10 items-center justify-center rounded-2xl border border-stone-200 bg-stone-950 text-white">
+                <Icon className="size-4" />
+              </div>
+              <p className="mt-3 text-sm font-semibold text-stone-950">
+                {item.title}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-stone-500">
+                {item.description}
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
-

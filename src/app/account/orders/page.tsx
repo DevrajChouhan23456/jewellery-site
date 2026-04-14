@@ -52,12 +52,20 @@ export default async function AccountOrdersPage() {
                     <td className="px-4 py-3">₹{order.totalAmount.toLocaleString("en-IN")}</td>
                     <td className="px-4 py-3 font-semibold text-amber-900">{statusCaps[order.status] ?? order.status}</td>
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/account/orders/${order.id}`}
-                        className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700"
-                      >
-                        View Details
-                      </Link>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/track/${encodeURIComponent(order.orderNumber)}`}
+                          className="rounded-lg bg-[#7a1f24] px-3 py-1 text-xs font-semibold text-white hover:bg-[#64181d]"
+                        >
+                          Track
+                        </Link>
+                        <Link
+                          href={`/account/orders/${order.id}`}
+                          className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-700"
+                        >
+                          Details
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

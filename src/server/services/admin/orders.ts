@@ -1,5 +1,6 @@
 import type { OrderStatus, Prisma } from "@prisma/client";
 
+import eventBus from "@/lib/event-bus";
 import prisma from "@/lib/prisma";
 import {
   hydrateOrderWithShopPageProducts,
@@ -174,10 +175,46 @@ export async function getAdminOrderById(id: string) {
 }
 
 export async function updateOrderStatus(id: string, status: string) {
+  const nextStatus = status as OrderStatus;
+
+  const existing = await prisma.order.findUnique({
+    where: { id },
+    select: { id: true, status: true },
+  });
+
+  if (!existing) {
+    throw new Error("Order not found.");
+  }
+
+  if (existing.status === nextStatus) {
+    const order = await prisma.order.findUnique({
+      where: { id },
+      select: adminOrderListSelect,
+    });
+    if (!order) {
+      throw new Error("Order not found.");
+    }
+    const hydratedOrder = await hydrateOrderWithShopPageProducts(order);
+    if (!hydratedOrder) {
+      throw new Error("Updated order could not be hydrated.");
+    }
+    return {
+      ...hydratedOrder,
+      createdAt: hydratedOrder.createdAt.toISOString(),
+      updatedAt: hydratedOrder.updatedAt.toISOString(),
+    };
+  }
+
   const order = await prisma.order.update({
     where: { id },
-    data: { status: status as OrderStatus },
+    data: { status: nextStatus },
     select: adminOrderListSelect,
+  });
+
+  eventBus.emit("order.statusChanged", {
+    orderId: order.id,
+    previousStatus: existing.status,
+    newStatus: nextStatus,
   });
 
   const hydratedOrder = await hydrateOrderWithShopPageProducts(order);
@@ -186,7 +223,6 @@ export async function updateOrderStatus(id: string, status: string) {
     throw new Error("Updated order could not be hydrated.");
   }
 
-  // Transform dates to strings for frontend compatibility
   return {
     ...hydratedOrder,
     createdAt: hydratedOrder.createdAt.toISOString(),

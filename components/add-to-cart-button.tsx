@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { motion } from "motion/react";
 import toast from "react-hot-toast";
-import { motion, AnimatePresence } from "motion/react";
 
 import { addServerCartItem, mapApiCartToStoreItems } from "@/lib/cart-client";
 import type { CartItem } from "@/lib/cart-storage";
@@ -46,7 +46,8 @@ export default function AddToCartButton({
   const openCart = useCartStore((state) => state.openCart);
   const setItems = useCartStore((state) => state.setItems);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const shouldOpenCart = openCartOnSuccess && !redirectToCart && !redirectToCheckout;
+  const shouldOpenCart =
+    openCartOnSuccess && !redirectToCart && !redirectToCheckout;
 
   const navigateAfterSuccess = () => {
     if (redirectToCheckout) {
@@ -80,12 +81,11 @@ export default function AddToCartButton({
     if (status !== "authenticated") {
       toast.success(
         redirectToCheckout
-          ? "Added to bag. Sign in at checkout to continue."
+          ? "Added to bag. Continue with Google at checkout."
           : "Added to bag.",
       );
 
       navigateAfterSuccess();
-
       return;
     }
 
@@ -122,66 +122,44 @@ export default function AddToCartButton({
       onClick={handleAddToCart}
       disabled={isSubmitting}
       aria-busy={isSubmitting}
-      whileTap={{
-        scale: 0.95,
-        rotate: [0, -1, 1, 0],
-        transition: { duration: 0.2 }
-      }}
-      whileHover={{
-        scale: 1.02,
-        boxShadow: "0 10px 25px rgba(139, 111, 71, 0.3)"
-      }}
-      animate={isSubmitting ? {
-        scale: [1, 1.05, 1],
-        transition: { duration: 0.3, repeat: Infinity }
-      } : {}}
+      whileTap={{ scale: 0.98 }}
+      whileHover={{ y: -1 }}
+      animate={
+        isSubmitting
+          ? {
+              opacity: [1, 0.72, 1],
+            }
+          : {
+              opacity: 1,
+            }
+      }
+      transition={
+        isSubmitting
+          ? {
+              duration: 0.9,
+              ease: "easeInOut",
+              repeat: Infinity,
+            }
+          : {
+              duration: 0.2,
+              ease: "easeOut",
+            }
+      }
       className={cn(
-        "relative flex flex-1 items-center justify-center rounded-full bg-[#8b6f47] px-8 py-4 text-sm font-bold uppercase tracking-[0.2em] text-white shadow-lg shadow-[#8b6f47]/20 transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-[#7a5d3f] disabled:cursor-not-allowed disabled:opacity-70 overflow-hidden",
+        "group relative inline-flex min-h-12 w-full items-center justify-center overflow-hidden rounded-full border border-stone-950 bg-stone-950 px-5 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-white shadow-[0_22px_48px_-30px_rgba(28,25,23,0.65)] transition-[transform,box-shadow,background-color,border-color,color] duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-30px_rgba(28,25,23,0.5)] disabled:translate-y-0 disabled:shadow-none",
         className,
       )}
     >
-      {/* Animated background particles */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-        initial={{ x: "-100%" }}
-        whileHover={{ x: "100%" }}
-        transition={{ duration: 0.6 }}
-      />
-
-      {/* Success burst animation */}
-      <AnimatePresence>
-        {!isSubmitting && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center"
-          >
-            <motion.div
-              animate={{
-                scale: [1, 1.2, 1],
-                rotate: [0, 180, 360]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="text-white/20"
-            >
-              ✨
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+        <span className="absolute inset-y-0 left-[-28%] w-1/2 rotate-12 bg-white/18 blur-2xl" />
+      </span>
       <span className="relative z-10">
         {isSubmitting
           ? redirectToCheckout
-            ? "Preparing Checkout..."
+            ? "Preparing Checkout"
             : redirectToCart
-              ? "Opening Bag..."
-            : "Adding..."
+              ? "Opening Bag"
+              : "Adding"
           : label}
       </span>
     </motion.button>

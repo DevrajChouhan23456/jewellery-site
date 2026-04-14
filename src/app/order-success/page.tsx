@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import { CheckCircle, Package, Truck, Shield, ArrowRight } from "lucide-react";
 
+import { OrderSuccessLottie } from "@/components/lottie/OrderSuccessLottie";
+import { GsapStaggerMount } from "@/components/motion/GsapStaggerMount";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
@@ -39,9 +41,9 @@ function OrderSuccessContent() {
     <main className="bg-luxury-ivory min-h-screen py-12 text-slate-900 dark:bg-neutral-950 dark:text-slate-50">
       <div className="luxury-shell max-w-2xl">
         <div className="rounded-[2rem] border border-[#ecdcc6] bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-white/5">
-          {/* Success Icon */}
-          <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/50">
-            <CheckCircle className="size-10 text-emerald-600" />
+          <GsapStaggerMount className="contents">
+          <div className="mb-6">
+            <OrderSuccessLottie maxWidthClassName="max-w-[220px]" />
           </div>
 
           {/* Success Message */}
@@ -125,7 +127,7 @@ function OrderSuccessContent() {
             <div className="flex flex-col items-center gap-2 rounded-lg border border-[#e6d3bf] bg-white p-4 dark:border-white/10 dark:bg-neutral-900/50">
               <CheckCircle className="size-6 text-[#7a1f24]" />
               <span className="text-xs font-medium text-center">
-                Certified Jewellery
+                Style-Checked Finish
               </span>
             </div>
             <div className="flex flex-col items-center gap-2 rounded-lg border border-[#e6d3bf] bg-white p-4 dark:border-white/10 dark:bg-neutral-900/50">
@@ -139,15 +141,18 @@ function OrderSuccessContent() {
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button asChild className="rounded-full bg-[#7a1f24] px-8 text-white hover:bg-[#64181d]">
-              <Link href="/">
-                Continue Shopping
+              <Link href={`/track/${encodeURIComponent(orderId)}`}>
+                Track order
                 <ArrowRight className="ml-2 size-4" />
               </Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full">
-              <Link href="/account/orders">
-                View Order Details
+              <Link href="/">
+                Continue shopping
               </Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href="/account/orders">My orders</Link>
             </Button>
           </div>
 
@@ -156,6 +161,7 @@ function OrderSuccessContent() {
             A confirmation email has been sent to your registered email address.
             For any queries, please contact our customer support.
           </p>
+          </GsapStaggerMount>
         </div>
       </div>
     </main>

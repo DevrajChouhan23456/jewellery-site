@@ -44,9 +44,17 @@ export default async function AccountOrderDetailPage({ params }: { params: { id:
 
   return (
     <section className="space-y-6 rounded-2xl border border-white/80 bg-white/70 p-6 shadow-sm backdrop-blur">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Order Details</h1>
-        <p className="rounded-xl bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">{order.status}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/track/${encodeURIComponent(order.orderNumber)}`}
+            className="rounded-full bg-[#7a1f24] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#64181d]"
+          >
+            Live tracking
+          </Link>
+          <p className="rounded-xl bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">{order.status}</p>
+        </div>
       </div>
 
       <div className="rounded-xl border border-stone-200 bg-white p-5">

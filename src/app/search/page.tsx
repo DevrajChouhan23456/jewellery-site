@@ -16,8 +16,8 @@ export async function generateMetadata({
   return {
     title: query ? `Search results for "${query}"` : "Search",
     description: query
-      ? `Find diamond jewellery matching "${query}". Browse our collection of rings, necklaces, earrings and more.`
-      : "Search our diamond jewellery collection",
+      ? `Find artificial jewellery matching "${query}". Browse earrings, rings, necklace sets, gifting picks, and more.`
+      : "Search our artificial jewellery collection",
   };
 }
 

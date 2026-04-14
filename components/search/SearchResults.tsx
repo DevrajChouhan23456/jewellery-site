@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { SearchProduct } from "@/lib/products";
+import { formatMaterialLabel, formatProductName } from "@/lib/brand-copy";
 
 interface SearchResultsProps {
   query: string;
@@ -44,7 +45,7 @@ export default function SearchResults({ query }: SearchResultsProps) {
 
   if (!query) {
     return (
-      <div className="text-center py-12">
+      <div className="py-12 text-center">
         <p className="text-gray-500">Enter a search term to find products</p>
       </div>
     );
@@ -62,12 +63,11 @@ export default function SearchResults({ query }: SearchResultsProps) {
             className="relative overflow-hidden rounded-lg bg-gray-200"
           >
             <div className="aspect-square bg-gray-200"></div>
-            <div className="p-4 space-y-2">
-              <div className="h-4 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="space-y-2 p-4">
+              <div className="h-4 rounded bg-gray-200"></div>
+              <div className="h-4 w-3/4 rounded bg-gray-200"></div>
+              <div className="h-4 w-1/2 rounded bg-gray-200"></div>
             </div>
-            {/* Shimmer effect */}
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent"
               animate={{ x: ["-100%", "100%"] }}
@@ -86,7 +86,7 @@ export default function SearchResults({ query }: SearchResultsProps) {
 
   if (error) {
     return (
-      <div className="text-center py-12">
+      <div className="py-12 text-center">
         <p className="text-red-500">Error: {error}</p>
       </div>
     );
@@ -94,10 +94,11 @@ export default function SearchResults({ query }: SearchResultsProps) {
 
   if (products.length === 0) {
     return (
-      <div className="text-center py-12">
+      <div className="py-12 text-center">
         <p className="text-gray-500">No products found for &quot;{query}&quot;</p>
-        <p className="text-sm text-gray-400 mt-2">
-          Try searching for different keywords like &quot;gold&quot;, &quot;diamond&quot;, or &quot;necklace&quot;
+        <p className="mt-2 text-sm text-gray-400">
+          Try searching for keywords like &quot;american diamond&quot;,
+          &quot;jhumka&quot;, or &quot;necklace set&quot;
         </p>
       </div>
     );
@@ -110,24 +111,23 @@ export default function SearchResults({ query }: SearchResultsProps) {
           key={product.id}
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+          className="overflow-hidden rounded-lg bg-white shadow-sm transition-shadow hover:shadow-md"
         >
           <Link href={`/product/${product.slug}`} className="block">
-            <div className="aspect-square relative overflow-hidden bg-gray-100 group">
+            <div className="group relative aspect-square overflow-hidden bg-gray-100">
               {product.images && product.images.length > 0 ? (
                 <Image
                   src={product.images[0]}
-                  alt={product.name}
+                  alt={formatProductName(product.name)}
                   fill
                   className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                 />
               ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-gray-400 text-sm">No image</span>
+                <div className="flex h-full w-full items-center justify-center bg-gray-200">
+                  <span className="text-sm text-gray-400">No image</span>
                 </div>
               )}
-              {/* Shimmer effect */}
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                 initial={{ x: "-100%" }}
@@ -137,21 +137,21 @@ export default function SearchResults({ query }: SearchResultsProps) {
             </div>
 
             <div className="p-4">
-              <h3 className="font-medium text-gray-900 group-hover:text-[#832729] transition-colors line-clamp-2">
-                {product.name}
+              <h3 className="line-clamp-2 font-medium text-gray-900 transition-colors group-hover:text-[#832729]">
+                {formatProductName(product.name)}
               </h3>
 
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-lg font-semibold text-[#832729]">
-                  ₹{product.price.toLocaleString()}
+                  Rs. {product.price.toLocaleString("en-IN")}
                 </span>
-                <span className="text-sm text-gray-500 capitalize">
+                <span className="text-sm capitalize text-gray-500">
                   {product.category}
                 </span>
               </div>
 
               <div className="mt-1 text-sm text-gray-500">
-                {product.material} • {product.type}
+                {formatMaterialLabel(product.material)} · {product.type}
               </div>
             </div>
           </Link>

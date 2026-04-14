@@ -44,7 +44,7 @@ export default function CuratedSection({ section, items }: CuratedSectionProps) 
     <section className="w-full bg-white py-16 md:py-24 overflow-hidden">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-[42px] font-serif tracking-tight text-[#333] mb-2">
-          {section.title || "Styling 101 With Diamonds"}
+          {section.title || "Styling ideas for artificial jewellery"}
         </h2>
         {section.subtitle && (
           <p className="text-gray-500 text-base md:text-lg font-serif">
@@ -103,7 +103,7 @@ export default function CuratedSection({ section, items }: CuratedSectionProps) 
                       <>
                         <div className="absolute top-5 left-5 right-5 flex justify-between items-start text-white shadow-sm z-20">
                            <p className="text-[13px] font-medium w-2/3 leading-snug font-sans drop-shadow-md">
-                             Your {item.title.toLowerCase()} sparkle, el...
+                             {item.title} edit, styled for the moment
                            </p>
                            <div className="flex gap-4">
                              <VolumeX className="size-[18px] drop-shadow-md cursor-pointer hover:opacity-80 transition" />
@@ -131,7 +131,7 @@ export default function CuratedSection({ section, items }: CuratedSectionProps) 
                                   {item.title}
                                 </p>
                                 <p className="text-[11px] font-serif leading-tight line-clamp-2 mt-0.5 text-gray-100">
-                                  {item.subtitle || "Diamond Drop Earrings"}
+                                  {item.subtitle || "Statement drop earrings"}
                                 </p>
                               </div>
                             </div>

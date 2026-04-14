@@ -25,6 +25,47 @@ export async function getCurrentUserOrders() {
   });
 }
 
+export async function getCurrentUserOrderByOrderNumber(orderNumber: string) {
+  const userId = await getCurrentCustomerUserId();
+
+  if (!userId) {
+    return null;
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { orderNumber },
+    include: {
+      items: {
+        select: {
+          id: true,
+          productId: true,
+          quantity: true,
+          unitPrice: true,
+          lineTotal: true,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    return null;
+  }
+
+  const hydratedOrder = await hydrateOrderWithShopPageProducts(order);
+
+  if (!hydratedOrder) {
+    return null;
+  }
+
+  const metadata = parseCheckoutOrderMetadata(order.metadata);
+
+  if (order.userId === userId || metadata.customerUserId === userId) {
+    return hydratedOrder;
+  }
+
+  return null;
+}
+
 export async function getCurrentUserOrderById(orderId: string) {
   const userId = await getCurrentCustomerUserId();
 

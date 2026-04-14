@@ -3,9 +3,11 @@
 import { useEffect } from "react";
 import { SessionProvider, useSession } from "next-auth/react";
 
+import { SiteIdentityProvider } from "@/components/site-identity-provider";
 import { fetchServerCart, mapApiCartToStoreItems } from "@/lib/cart-client";
 import { readCartFromStorage } from "@/lib/cart-storage";
 import { mergeCartAfterLogin } from "@/lib/mergeCart";
+import type { SiteIdentity } from "@/lib/site-identity";
 import { useCartStore } from "@/lib/store";
 import SmoothScroll from "@/components/smooth-scroll";
 
@@ -47,8 +49,10 @@ function CartInitializer() {
 
 export default function Providers({
   children,
+  initialSiteIdentity,
 }: {
   children: React.ReactNode;
+  initialSiteIdentity: SiteIdentity;
 }) {
   return (
     <SessionProvider
@@ -56,9 +60,11 @@ export default function Providers({
       refetchOnWindowFocus
       refetchWhenOffline={false}
     >
-      <SmoothScroll />
-      <CartInitializer />
-      {children}
+      <SiteIdentityProvider initialSiteIdentity={initialSiteIdentity}>
+        <SmoothScroll />
+        <CartInitializer />
+        {children}
+      </SiteIdentityProvider>
     </SessionProvider>
   );
 }

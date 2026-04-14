@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -20,33 +20,33 @@ type SignatureStoriesSectionProps = {
 const fallbackStories: StorySlide[] = [
   {
     id: "s1",
-    title: "Everyday Diamond",
-    subtitle: "Refined sparkle for every day.",
-    href: "/shop/diamond",
+    title: "Daily Glam",
+    subtitle: "Lightweight sparkle for office looks and coffee runs.",
+    href: "/shop/glamdays",
   },
   {
     id: "s2",
-    title: "Classic Radiance",
-    subtitle: "Modern icons with timeless shine.",
-    href: "/shop/diamond",
+    title: "Wedding Guest",
+    subtitle: "Big sparkle for lehengas, saris, and celebration fits.",
+    href: "/shop/jewellery",
   },
   {
     id: "s3",
-    title: "Styling Diamonds",
-    subtitle: "Exquisite vines diamond stories.",
-    href: "/shop/diamond",
+    title: "Layered Gold-Tone",
+    subtitle: "Stacked chains and bangles for festive dressing.",
+    href: "/shop/jewellery",
   },
   {
     id: "s4",
-    title: "Fine Sparkle",
-    subtitle: "Subtle elegance with statement detail.",
-    href: "/shop/diamond",
+    title: "American Diamond",
+    subtitle: "Cocktail-night shine with a polished finish.",
+    href: "/shop/jewellery",
   },
   {
     id: "s5",
     title: "Gift Edit",
-    subtitle: "Curated gifting favourites in diamonds.",
-    href: "/shop/diamond",
+    subtitle: "Budget-friendly gifting favourites with statement appeal.",
+    href: "/shop/gifting",
   },
 ];
 
@@ -58,7 +58,9 @@ const toneClasses = [
   "from-[#194f84] via-[#103a66] to-[#0a2947]",
 ];
 
-export default function SignatureStoriesSection({ stories }: SignatureStoriesSectionProps) {
+export default function SignatureStoriesSection({
+  stories,
+}: SignatureStoriesSectionProps) {
   const cards = useMemo(
     () => (stories && stories.length > 0 ? stories.slice(0, 7) : fallbackStories),
     [stories],
@@ -110,7 +112,7 @@ export default function SignatureStoriesSection({ stories }: SignatureStoriesSec
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-serif text-[#2f2a25] md:text-4xl">
-            Trendsetting diamond jewellery suited for every occasion
+            Artificial jewellery edits for every outfit change
           </h2>
         </div>
 
@@ -211,10 +213,10 @@ export default function SignatureStoriesSection({ stories }: SignatureStoriesSec
             New
           </div>
           <div className="flex-1 text-center text-sm font-medium text-[#5a4735] sm:text-base">
-            Welcome back! Continue your wedding journey with us.
+            Fresh drops for wedding guests, gifting, and festive styling.
           </div>
           <Link
-            href={cards[activeIndex]?.href ?? "/shop/diamond"}
+            href={cards[activeIndex]?.href ?? "/shop/jewellery"}
             className="inline-flex h-11 items-center justify-center rounded-full bg-[#7e2b30] px-4 text-sm font-semibold text-white transition hover:bg-[#962f32]"
           >
             Explore

@@ -1,9 +1,15 @@
+import type { OrderStatus } from "@prisma/client";
 import { EventEmitter } from "events";
 
 export type AppEvents = {
   "order.created": { orderId: string; userId: string; totalAmount: number };
-  "order.paid": { orderId: string; userId: string; paymentMethod: string }; 
-  "cart.updated": { cartId: string; userId?: string }; 
+  "order.paid": { orderId: string; userId: string; paymentMethod: string };
+  "order.statusChanged": {
+    orderId: string;
+    previousStatus: OrderStatus;
+    newStatus: OrderStatus;
+  };
+  "cart.updated": { cartId: string; userId?: string };
   "user.logged_in": { userId: string; method: string };
 };
 

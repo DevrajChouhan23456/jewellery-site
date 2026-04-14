@@ -1,8 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Circle,
-  CircleDollarSign,
-  Diamond,
   Ear,
   Gift,
   HeartHandshake,
@@ -35,196 +33,129 @@ export const categories: Category[] = [
   { label: "Rings", href: "/shop/rings", icon: Circle },
   { label: "Daily Wear", href: "/shop/glamdays", icon: Sun },
   { label: "Collections", href: "/shop/thejoydressing", icon: Layers },
-  { label: "Wedding", href: "/shop/jewellery", icon: HeartHandshake },
+  { label: "Occasion Wear", href: "/shop/jewellery", icon: HeartHandshake },
   { label: "Gifting", href: "/shop/gifting", icon: Gift },
   { label: "More", href: "/shop/jewellery", icon: Menu },
 ];
 
 export const megaMenuData: Record<string, MegaMenuItem> = {
   "All Jewellery": {
-    filters: ["Category", "Price", "Occasion", "Gender", "Metal"],
+    filters: ["Category", "Price", "Occasion", "Style", "Finish"],
     groups: [
-      ["All Jewellery", "Earrings", "Pendants", "Finger Rings"],
-      ["Mangalsutra", "Chains", "Nose Pin", "Necklaces"],
-      ["Necklace Set", "Bangles", "Bracelets", "Pendants & Earring Set"],
+      ["All Jewellery", "Earrings", "Rings", "Pendants"],
+      ["Necklace Sets", "Bangles", "Bracelets", "Maang Tikka"],
+      ["Hair Accessories", "Anklets", "Statement Sets", "Gift Picks"],
     ],
     promo: {
-      title: "Elan - My World. My Story.",
-      subtitle: "Jewellery for every moment, crafted to shine.",
+      title: "Auraa edits for every outfit",
+      subtitle:
+        "Artificial jewellery styles for brunch looks, gifting, and big celebrations.",
       cta: "Explore now",
     },
-    ribbon: "Jewellery for Every Moment - See It All Here!",
-  },
-  Gold: {
-    filters: ["Category", "Price", "Occasion", "Gold Coin", "Men", "Metal"],
-    groups: [
-      ["All Gold", "Gold Earrings", "Gold Rings", "Gold Nose Pins"],
-      [
-        "Gold Bangles",
-        "Gold Chains",
-        "Gold Engagement Rings",
-        "Gold Kadas",
-      ],
-      [
-        "Gold Bracelets",
-        "Gold Pendants",
-        "Gold Necklaces",
-        "Gold Mangalsutras",
-      ],
-    ],
-    promo: {
-      title: "Intricately handcrafted",
-      subtitle: "Heritage-inspired pieces for modern elegance.",
-      cta: "Explore now",
-    },
-    ribbon: "From Classic to Contemporary",
-  },
-  Diamond: {
-    filters: ["Category", "Price", "Occasion", "Gender", "Metal & Stones"],
-    groups: [
-      [
-        "All Diamond",
-        "Diamond Earrings",
-        "Diamond Rings",
-        "Diamond Nose Pins",
-      ],
-      [
-        "Diamond Bracelets",
-        "Diamond Chains",
-        "Diamond Pendants",
-        "Diamond Bangles",
-      ],
-      ["Diamond Necklaces", "Diamond Sets", "Solitaires", "Wedding Diamonds"],
-    ],
-    promo: {
-      title: "Timeless brilliance",
-      subtitle: "Signature diamond styles made to celebrate you.",
-      cta: "Explore now",
-    },
-    ribbon: "Sparkle in every design",
+    ribbon: "Everyday glam to occasion sparkle, all in one place",
   },
   Earrings: {
-    filters: ["Category", "Price", "Occasion", "Gender", "Metal & Stones"],
+    filters: ["Category", "Price", "Occasion", "Finish", "Mood"],
     groups: [
       ["All Earrings", "Studs", "Hoops", "Drops"],
       ["Chandbalis", "Jhumkas", "Daily Wear", "Office Wear"],
-      ["Party Edit", "Bridal Edit", "Solitaire Earrings", "Kids Earrings"],
+      ["Party Edit", "Bridal Glam", "Ear Cuffs", "Kids Earrings"],
     ],
     promo: {
       title: "Find your perfect pair",
-      subtitle: "From subtle studs to statement silhouettes.",
+      subtitle: "From lightweight studs to festive jhumkas and bold party drops.",
       cta: "Shop now",
     },
-    ribbon: "Ear candy for every style",
+    ribbon: "Ear candy for every mood",
   },
   Rings: {
-    filters: ["Category", "Price", "Occasion", "Gender", "Metal & Stones"],
+    filters: ["Category", "Price", "Occasion", "Finish", "Style"],
     groups: [
-      [
-        "All Rings",
-        "Casual Rings",
-        "Couple Rings",
-        "Diamond Engagement Rings",
-      ],
-      [
-        "Engagement Rings",
-        "Gold Engagement Rings",
-        "Men's Rings",
-        "Platinum Rings",
-      ],
-      ["Solitaire Rings", "Wedding Bands", "Stacking Rings", "Cocktail Rings"],
+      ["All Rings", "Adjustable Rings", "Stack Rings", "Cocktail Rings"],
+      ["Floral Rings", "Pearl Rings", "Couple Rings", "Gift Rings"],
+      ["Stone Rings", "Minimal Rings", "Party Rings", "Daily Rings"],
     ],
     promo: {
-      title: "A symbol of commitment",
-      subtitle: "Celebrate love and milestones with a ring that speaks.",
+      title: "Stack, style, repeat",
+      subtitle:
+        "Adjustable rings and statement styles made for gifting and easy styling.",
       cta: "Shop now",
     },
-    ribbon: "Celebrate love & milestones",
+    ribbon: "Rings for gifting, layering, and instant glam",
   },
   "Daily Wear": {
-    filters: ["Category", "Price", "Occasion", "Gender", "Metal"],
+    filters: ["Category", "Price", "Occasion", "Finish", "Weight"],
     groups: [
       ["All Daily Wear", "Pendants", "Rings", "Earrings"],
       ["Chains", "Bracelets", "Necklaces", "Office Wear"],
-      ["Lightweight Gold", "Minimal Diamond", "Everyday Classics", "Gift Picks"],
+      ["Minimal Sets", "Gold-Tone Basics", "American Diamond Touch", "Gift Picks"],
     ],
     promo: {
       title: "Style, every day",
-      subtitle: "Light, elegant and effortless pieces for daily looks.",
+      subtitle:
+        "Lightweight artificial jewellery made for office, errands, and dinner plans.",
       cta: "Explore now",
     },
-    ribbon: "Daily looks that always shine",
+    ribbon: "Easy looks that still bring the sparkle",
   },
   Collections: {
     filters: ["Category", "New Arrivals", "Price", "Occasion", "Theme"],
     groups: [
       ["All Collections", "Bridal Edit", "Festive Edit", "Office Edit"],
-      [
-        "Statement Collection",
-        "Minimal Collection",
-        "Temple Collection",
-        "Classic Gold",
-      ],
-      ["Contemporary Diamond", "Limited Edition", "Seasonal Drops", "Best Sellers"],
+      ["Statement Collection", "Minimal Collection", "Kundan Edit", "Oxidised Edit"],
+      ["American Diamond Edit", "Limited Drops", "Seasonal Picks", "Best Sellers"],
     ],
     promo: {
-      title: "Curated stories in gold",
-      subtitle: "Exclusive edits inspired by moments and moods.",
+      title: "Curated style stories",
+      subtitle:
+        "Statement edits inspired by weddings, gifting, and everyday dressing.",
       cta: "View all",
     },
-    ribbon: "Curated collections for every story",
+    ribbon: "Collections built around moods, moments, and outfit plans",
   },
-  Wedding: {
-    filters: ["Category", "Bridal Sets", "Price", "Occasion", "Metal"],
+  "Occasion Wear": {
+    filters: ["Category", "Bridal Sets", "Price", "Occasion", "Finish"],
     groups: [
-      ["All Wedding", "Bridal Necklaces", "Wedding Rings", "Wedding Earrings"],
-      [
-        "Mangalsutra",
-        "Bridal Bangles",
-        "Temple Jewellery",
-        "Heirloom Edit",
-      ],
-      ["For Bride", "For Groom", "Family Gifting", "Ceremony Essentials"],
+      ["All Occasion Wear", "Bridal Sets", "Wedding Guest", "Reception Looks"],
+      ["Mehendi Picks", "Sangeet Styles", "Layered Chokers", "Bridal Bangles"],
+      ["Maang Tikka", "Passa Styles", "Photo-ready Sets", "Ceremony Essentials"],
     ],
     promo: {
       title: "Made for your big day",
-      subtitle: "Celebrate your journey with timeless wedding jewellery.",
+      subtitle:
+        "Show-stopping artificial jewellery for brides, bridesmaids, and wedding guests.",
       cta: "Explore now",
     },
-    ribbon: "Bridal jewellery crafted with love",
+    ribbon: "Big celebration sparkle without the real-gold price tag",
   },
   Gifting: {
-    filters: ["Category", "Price", "Recipient", "Occasion", "Metal"],
+    filters: ["Category", "Price", "Recipient", "Occasion", "Style"],
     groups: [
       ["All Gifting", "For Her", "For Him", "For Kids"],
-      [
-        "Birthday Gifts",
-        "Anniversary Gifts",
-        "Wedding Gifts",
-        "Festive Gifts",
-      ],
-      ["Under 10k", "Under 25k", "Premium Gifts", "Gift Cards"],
+      ["Birthday Gifts", "Return Gifts", "Wedding Favours", "Festive Gifts"],
+      ["Under 999", "Under 1999", "Statement Gifts", "Gift Sets"],
     ],
     promo: {
       title: "Gift unforgettable sparkle",
-      subtitle: "Thoughtful jewellery picks for every celebration.",
+      subtitle:
+        "Thoughtful artificial jewellery picks for birthdays, festive gifting, and bridesmaid boxes.",
       cta: "Explore now",
     },
-    ribbon: "Gift moments that last forever",
+    ribbon: "Budget-friendly gifting that still feels special",
   },
   More: {
     filters: ["Highlights", "Shop by", "Help", "Services", "About"],
     groups: [
-      ["New Arrivals", "Bestsellers", "Store Locator", "Book Appointment"],
-      ["Try at Home", "Exchange Policy", "Track Order", "Customer Support"],
-      ["About Us", "Care Guide", "FAQs", "Blogs"],
+      ["New Arrivals", "Bestsellers", "Styling Help", "Gift Guide"],
+      ["Care Tips", "Return Help", "Track Order", "Customer Support"],
+      ["About Us", "Lookbook", "FAQs", "Contact Us"],
     ],
     promo: {
       title: "Discover more with us",
-      subtitle: "Services and stories beyond shopping.",
+      subtitle: "Styling help, care tips, and support beyond the catalogue.",
       cta: "Know more",
     },
-    ribbon: "Everything else you need",
+    ribbon: "Everything else you need, from care to gifting help",
   },
 };
 

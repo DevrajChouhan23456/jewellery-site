@@ -54,75 +54,75 @@ export function normalizeHomePageIcon(
 
 export const defaultServicePillars: HomePageInfoCardContent[] = [
   {
-    title: "Certified Craft",
+    title: "Quality-Checked Finish",
     description:
-      "Every piece is presented with care, quality, and confidence.",
+      "Every piece is selected for style, finish, and easy repeat wear.",
     icon: "shieldCheck",
   },
   {
-    title: "Store Guidance",
+    title: "Styling Guidance",
     description:
-      "Book a consultation and discover styles with personal assistance.",
+      "Share your event, budget, and outfit mood to get help choosing the right look.",
     icon: "store",
   },
   {
-    title: "Secure Delivery",
+    title: "Careful Delivery",
     description:
-      "From packaging to doorstep, every order is handled with precision.",
+      "From packing to doorstep, every order is handled with gifting and occasion wear in mind.",
     icon: "truck",
   },
 ];
 
 export const defaultReassuranceHighlights: HomePageInfoCardContent[] = [
   {
-    title: "Try at Home, Fast",
+    title: "Fresh Drops, Fast",
     description:
-      "Priority samples delivered in 24-72 hours with easy returns.",
+      "New styles land regularly so you can shop the latest party and festive looks.",
     icon: "truck",
   },
   {
-    title: "Lifetime Care",
+    title: "Care Tips Included",
     description:
-      "Complimentary cleaning, tightening, and resizing on every piece.",
+      "Simple storage and after-wear care guidance helps your favourite pieces stay looking better for longer.",
     icon: "shieldCheck",
   },
   {
-    title: "Certified Stones",
+    title: "Statement Finishes",
     description:
-      "GIA / IGI grading and transparent gold purity on every order.",
+      "Browse American Diamond sparkle, gold-tone layers, pearls, and festive statement styles in one place.",
     icon: "gem",
   },
   {
-    title: "Concierge Updates",
+    title: "Quick Support",
     description:
-      "Chat updates from purchase to delivery, including gift timing.",
+      "Chat updates for orders, gifting requests, and styling help when you need a second opinion.",
     icon: "messageCircle",
   },
 ];
 
-export const defaultConciergeEyebrow = "Concierge Services";
+export const defaultConciergeEyebrow = "Styling Support";
 export const defaultConciergeTitle =
-  "Personalized guidance for every jewellery moment";
+  "Personalized guidance for gifting, festive looks, and occasion wear";
 
 export const defaultConciergeActions: HomePageActionCardContent[] = [
   {
     title: "Book a Styling Call",
     description:
-      "Share your event, budget, and vibe; receive a tailored cart in 24 hours.",
+      "Share your event, outfit vibe, and budget to get a curated shortlist from our team.",
     href: "/contact",
     icon: "phoneCall",
   },
   {
-    title: "Visit the Studio",
+    title: "Explore The Brand",
     description:
-      "See metal finishes and stones in person. Private appointments daily.",
+      "See how we think about party-wear sparkle, gifting, and artificial jewellery styling.",
     href: "/about",
     icon: "mapPin",
   },
   {
     title: "Gift Concierge",
     description:
-      "Handwritten notes, discreet delivery windows, luxe wrapping, and tracking.",
+      "Build bridesmaid boxes, festive gifts, or return-gift bundles with a little extra help.",
     href: "/contact",
     icon: "sparkles",
   },
@@ -130,10 +130,10 @@ export const defaultConciergeActions: HomePageActionCardContent[] = [
 
 export const defaultStylingJournalEyebrow = "Styling Journal";
 export const defaultStylingJournalTitle =
-  "Layer with balance, shine with intention";
+  "Style with confidence, sparkle with ease";
 
 export const defaultStylingTips = [
-  "Layer a slim herringbone with a sculpted pendant for contrast.",
-  "Mix metals around one hero ring to add depth without bulk.",
-  "Pair quiet diamond studs with a structured ear cuff for edge.",
+  "Pair one statement necklace with lighter earrings to keep festive looks balanced.",
+  "Mix gold-tone layers with pearls or American Diamond accents for more depth.",
+  "Use one bold accessory with a simple outfit when you want the jewellery to lead.",
 ];

@@ -39,6 +39,7 @@ const adminProductDetailSelect = {
   type: true,
   size: true,
   images: true,
+  description: true,
   createdAt: true,
 } satisfies Prisma.ProductSelect;
 

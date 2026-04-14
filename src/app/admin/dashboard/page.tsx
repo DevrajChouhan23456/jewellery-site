@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   BarChart3,
+  BrushCleaning,
   Package2,
   ShoppingBag,
   Sparkles,
@@ -178,6 +179,17 @@ export default async function AdminDashboardPage() {
                     <Link href="/admin/analytics">
                       Explore analytics
                       <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="lg"
+                    variant="ghost"
+                    className="rounded-full px-5 text-stone-700 hover:bg-stone-100"
+                  >
+                    <Link href="/admin/dashboard/logo">
+                      Update branding
+                      <BrushCleaning className="size-4" />
                     </Link>
                   </Button>
                 </div>

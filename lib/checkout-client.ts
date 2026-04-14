@@ -3,8 +3,24 @@
 import type { CheckoutInput } from "@/lib/validations/checkout";
 
 type ApiErrorPayload = {
+  code?: string;
   error?: string;
+  unavailableProductIds?: string[];
 };
+
+export class ApiRequestError extends Error {
+  code?: string;
+  status: number;
+  unavailableProductIds?: string[];
+
+  constructor(status: number, payload?: ApiErrorPayload | null) {
+    super(payload?.error || "Something went wrong. Please try again.");
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.code = payload?.code;
+    this.unavailableProductIds = payload?.unavailableProductIds;
+  }
+}
 
 export type CheckoutOrderResponse = {
   order: {
@@ -78,10 +94,7 @@ async function readResponse<T>(response: Response) {
     | null;
 
   if (!response.ok) {
-    throw new Error(
-      (payload as ApiErrorPayload | null)?.error ||
-        "Something went wrong. Please try again.",
-    );
+    throw new ApiRequestError(response.status, payload as ApiErrorPayload | null);
   }
 
   return payload as T;
@@ -182,13 +195,13 @@ export async function openRazorpayCheckout(
     const checkout = new RazorpayCheckout({
       amount: payment.amount,
       currency: payment.currency,
-      description: "Secure payment for your jewellery order",
+      description: "Secure payment for your fashion jewellery order",
       handler: resolve,
       key: payment.key,
       modal: {
         ondismiss: () => reject(new Error("Payment was cancelled.")),
       },
-      name: "Tanishq",
+      name: "Auraa Fashion Jewellery",
       order_id: payment.razorpayOrderId,
       prefill,
       theme: {

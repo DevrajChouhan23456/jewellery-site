@@ -1,53 +1,19 @@
 import type { NextAuthOptions, Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
-import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import crypto from "crypto";
 
 import { DEFAULT_LOGIN_PATH, normalizeRole } from "@/lib/auth-routes";
-import { normalizePhoneNumber } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
-import { redis } from "@/lib/redis";
+
+function sanitizeCustomerPhone(phone: string | null | undefined) {
+  if (typeof phone !== "string") {
+    return null;
+  }
+
+  return phone.startsWith("google-") ? null : phone;
+}
 
 export const customerProviders: NonNullable<NextAuthOptions["providers"]> = [
-  CredentialsProvider({
-    id: "otp",
-    name: "OTP",
-    credentials: {
-      phone: { label: "Phone", type: "text" },
-      otp: { label: "OTP", type: "text" },
-    },
-    async authorize(credentials) {
-      if (!credentials?.phone || !credentials?.otp) {
-        return null;
-      }
-
-      const phone = normalizePhoneNumber(credentials.phone);
-      const otpInput = credentials.otp.trim();
-      const hashedOtp = crypto.createHash("sha256").update(otpInput).digest("hex");
-      const storedHashedOtp = await redis.get<string>(`otp:${phone}`);
-
-      if (!storedHashedOtp || storedHashedOtp !== hashedOtp) {
-        return null;
-      }
-
-      await redis.del(`otp:${phone}`);
-
-      const user = await prisma.user.upsert({
-        where: { phone },
-        update: {},
-        create: { phone },
-      });
-
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone ?? undefined,
-        role: "USER" as const,
-      };
-    },
-  }),
 ];
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -78,7 +44,7 @@ export async function handleCustomerSignIn({
     return true;
   }
 
-  const dbUser = await prisma.user.upsert({
+  let dbUser = await prisma.user.upsert({
     where: { email: user.email },
     update: {
       name: user.name ?? undefined,
@@ -86,12 +52,22 @@ export async function handleCustomerSignIn({
     create: {
       email: user.email,
       name: user.name ?? undefined,
-      phone: `google-${user.email}`,
     },
   });
 
+  const sanitizedPhone = sanitizeCustomerPhone(dbUser.phone);
+
+  if (dbUser.phone !== sanitizedPhone) {
+    dbUser = await prisma.user.update({
+      where: { id: dbUser.id },
+      data: {
+        phone: sanitizedPhone,
+      },
+    });
+  }
+
   user.id = dbUser.id;
-  user.phone = dbUser.phone ?? undefined;
+  user.phone = sanitizedPhone ?? undefined;
   user.role = "USER";
   return true;
 }
@@ -109,7 +85,7 @@ export function applyCustomerJwt(
   }
 
   if (user) {
-    token.phone = user.phone ?? null;
+    token.phone = sanitizeCustomerPhone(user.phone);
   }
 
   token.role = normalizeRole(user?.role ?? token.role);
@@ -119,7 +95,8 @@ export function applyCustomerJwt(
 export function applyCustomerSession(session: Session, token: JWT) {
   if (session.user) {
     session.user.id = token.uid ?? token.sub ?? "";
-    session.user.phone = typeof token.phone === "string" ? token.phone : null;
+    session.user.phone =
+      typeof token.phone === "string" ? sanitizeCustomerPhone(token.phone) : null;
     session.user.role = normalizeRole(token.role);
   }
 

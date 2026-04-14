@@ -4,21 +4,21 @@ import { ArrowRight, Gem, ShieldCheck, Sparkles } from "lucide-react";
 
 const brandValues = [
   {
-    title: "Craft With Character",
+    title: "Looks With Personality",
     description:
-      "We focus on expressive silhouettes, refined detailing, and pieces that feel personal from first wear.",
+      "We focus on expressive silhouettes, festive sparkle, and statement accessories that feel fun from the first wear.",
     icon: Gem,
   },
   {
-    title: "Trust-Led Experience",
+    title: "Easy To Shop",
     description:
-      "From curation to delivery, the storefront is designed to feel polished, reassuring, and clear.",
+      "From browsing to checkout, the storefront is built to make artificial jewellery shopping feel clear, polished, and low-stress.",
     icon: ShieldCheck,
   },
   {
-    title: "Modern Styling",
+    title: "Event-Ready Styling",
     description:
-      "Our edits balance festive richness, gifting warmth, and easy everyday elegance.",
+      "Our edits balance wedding sparkle, gifting warmth, and easy daily-wear styling in one place.",
     icon: Sparkles,
   },
 ];
@@ -42,12 +42,13 @@ export default function AboutPage() {
                 className="mt-5 max-w-3xl text-4xl leading-tight text-stone-950 sm:text-5xl lg:text-6xl"
                 style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
               >
-                Jewellery shaped around modern rituals, gifting, and everyday glow.
+                Artificial jewellery shaped around weddings, gifting, and everyday glam.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[var(--luxury-muted)] sm:text-lg">
-                We built this storefront to feel like a thoughtful boutique:
-                polished visuals, expressive categories, and collection pages that
-                guide each customer toward a signature piece.
+                We built this storefront to feel like a thoughtful fashion-jewellery
+                boutique: polished visuals, expressive categories, and collection
+                pages that help each customer find the right sparkle for the outfit
+                and occasion.
               </p>
               <Link
                 href="/shop/jewellery"
@@ -62,7 +63,7 @@ export default function AboutPage() {
               <div className="relative aspect-[0.95] overflow-hidden rounded-[2rem]">
                 <Image
                   src="/images/sbg-women.jpg"
-                  alt="Jewellery styling"
+                  alt="Artificial jewellery styling"
                   fill
                   className="object-cover"
                 />

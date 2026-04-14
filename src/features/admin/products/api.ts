@@ -15,6 +15,7 @@ export type ProductFormInitialData = {
   type: string;
   size: string | null;
   images: string[];
+  description?: string | null;
 };
 
 export type ProductFieldErrors = Record<string, string[] | undefined>;

@@ -19,13 +19,13 @@ export async function generateMetadata({
 
   if (!page) {
     return {
-      title: "Shop | Jewellery",
-      description: "Explore the jewellery storefront.",
+      title: "Shop | Fashion Jewellery",
+      description: "Explore the artificial jewellery storefront.",
     };
   }
 
   return {
-    title: `${page.title} | Jewellery`,
+    title: `${page.title} | Fashion Jewellery`,
     description: page.heroDescription,
     openGraph: {
       title: page.heroTitle,
@@ -49,4 +49,3 @@ export default async function ShopPageRoute({
 
   return <CatalogPage page={page} selectedSubcategory={sub} />;
 }
-

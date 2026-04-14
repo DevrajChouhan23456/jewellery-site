@@ -1,13 +1,17 @@
 "use client";
 
+import { useGSAP } from "@gsap/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Heart, Users, Clock, SlidersHorizontal, Sparkles, X } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
+
+import { gsap } from "@/components/motion/ensure-gsap";
 import { VariableRewardPopup, useVariableRewards } from "@/components/variable-reward-popup";
 import { MagicCard } from "@/components/ui/magicui/magic-card";
+import { formatProductName } from "@/lib/brand-copy";
 import {
   Sheet,
   SheetContent,
@@ -76,6 +80,22 @@ function getStableValue(input: string) {
   return hash;
 }
 
+function formatCatalogPrice(price: number) {
+  return `Rs. ${price.toLocaleString("en-IN")}`;
+}
+
+const materialFilterLabels: Record<string, string> = {
+  gold: "gold-tone",
+  diamond: "american diamond",
+  silver: "silver-tone",
+};
+
+const categoryFilterLabels: Record<string, string> = {
+  ring: "rings",
+  necklace: "necklace sets",
+  bracelet: "bracelets",
+};
+
 function getProductSignals(product: CatalogProduct, index: number) {
   const seed = getStableValue(`${product.id}-${product.slug ?? "product"}-${index}`);
 
@@ -97,6 +117,8 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
   const [hasMore, setHasMore] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
+  const catalogHeroRef = useRef<HTMLElement>(null);
+  const productGridRef = useRef<HTMLDivElement>(null);
 
   const [filters, setFilters] = useState<CatalogFilters>({
     page: 1,
@@ -286,9 +308,62 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [filters, router]);
 
+  useGSAP(
+    () => {
+      if (!catalogHeroRef.current) return;
+      const copy = catalogHeroRef.current.querySelector("[data-catalog-hero-copy]");
+      const tiles = catalogHeroRef.current.querySelector("[data-catalog-hero-tiles]");
+      if (copy && copy.children.length > 0) {
+        gsap.from(copy.children, {
+          opacity: 0,
+          y: 22,
+          duration: 0.5,
+          stagger: 0.07,
+          ease: "power2.out",
+        });
+      }
+      if (tiles && tiles.children.length > 0) {
+        gsap.from(tiles.children, {
+          opacity: 0,
+          y: 18,
+          duration: 0.48,
+          stagger: 0.06,
+          ease: "power2.out",
+          delay: 0.08,
+        });
+      }
+    },
+    { scope: catalogHeroRef },
+  );
+
+  useGSAP(
+    () => {
+      if (!productGridRef.current) return;
+      const cards =
+        productGridRef.current.querySelectorAll<HTMLElement>(".catalog-product-card");
+      cards.forEach((el) => {
+        gsap.from(el, {
+          opacity: 0,
+          y: 28,
+          duration: 0.45,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: el,
+            start: "top 92%",
+            toggleActions: "play none none none",
+          },
+        });
+      });
+    },
+    { scope: productGridRef, dependencies: [products] },
+  );
+
   return (
     <>
-      <section className="relative mb-8 overflow-hidden border-b border-[#832729]/10 bg-linear-to-r from-[#fff8ef] via-[#fff4eb] to-[#ffe8e6] py-14">
+      <section
+        ref={catalogHeroRef}
+        className="relative mb-8 overflow-hidden border-b border-[#832729]/10 bg-linear-to-r from-[#fff8ef] via-[#fff4eb] to-[#ffe8e6] py-14"
+      >
         {page.heroImageUrl ? (
           <div className="absolute inset-0">
             <Image
@@ -307,7 +382,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
           <div className="absolute right-0 top-8 h-64 w-64 rounded-full bg-[#fe8bbb]/20 blur-3xl" />
         </div>
         <div className="relative mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
-          <div>
+          <div data-catalog-hero-copy>
             <p className="inline-flex items-center gap-2 rounded-full border border-[#832729]/20 bg-white/70 px-3 py-1 text-xs font-medium text-[#832729]">
               <Sparkles className="size-3.5" />
               {page.heroEyebrow || "Curated for your style"}
@@ -317,7 +392,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-stone-600">
               {page.heroDescription ||
-                "Discover handcrafted pieces designed for everyday elegance and special occasions. Use filters to quickly find the perfect match by material, category, and price."}
+                "Discover artificial jewellery designed for gifting, festive dressing, and everyday styling. Use filters to narrow by finish, category, and price."}
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <Link
@@ -333,7 +408,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4" data-catalog-hero-tiles>
             {featureTiles.map((item) => (
               <MagicCard
                 key={item.id}
@@ -423,7 +498,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                       : "border-stone-200 text-stone-700 hover:bg-stone-50"
                   }`}
                 >
-                  {item}
+                  {materialFilterLabels[item] ?? item}
                 </button>
               ))}
             </div>
@@ -442,7 +517,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                       : "border-stone-200 text-stone-700 hover:bg-stone-50"
                   }`}
                 >
-                  {item}
+                  {categoryFilterLabels[item] ?? item}
                 </button>
               ))}
             </div>
@@ -536,7 +611,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                                 : "border-stone-200 text-stone-700 hover:bg-stone-50"
                             }`}
                           >
-                            {item}
+                            {materialFilterLabels[item] ?? item}
                           </button>
                         ))}
                       </div>
@@ -554,7 +629,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                                 : "border-stone-200 text-stone-700 hover:bg-stone-50"
                             }`}
                           >
-                            {item}
+                            {categoryFilterLabels[item] ?? item}
                           </button>
                         ))}
                       </div>
@@ -596,7 +671,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                   onClick={() => toggleFilter("materials", item)}
                   className="inline-flex items-center gap-1 rounded-full border border-[#832729]/20 bg-[#832729]/5 px-3 py-1 text-sm capitalize text-[#832729]"
                 >
-                  {item}
+                  {materialFilterLabels[item] ?? item}
                   <X className="size-3" />
                 </button>
               ))}
@@ -607,7 +682,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                   onClick={() => toggleFilter("categories", item)}
                   className="inline-flex items-center gap-1 rounded-full border border-[#832729]/20 bg-[#832729]/5 px-3 py-1 text-sm capitalize text-[#832729]"
                 >
-                  {item}
+                  {categoryFilterLabels[item] ?? item}
                   <X className="size-3" />
                 </button>
               ))}
@@ -628,19 +703,17 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                 ))}
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                <AnimatePresence>
-                  {products.map((product, index) => {
-                    const signals = getProductSignals(product, index);
+              <div
+                ref={productGridRef}
+                className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
+              >
+                {products.map((product, index) => {
+                  const signals = getProductSignals(product, index);
 
-                    return (
-                    <motion.div
+                  return (
+                    <div
                       key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="group relative rounded-2xl bg-white shadow-sm transition-all duration-300 hover:shadow-xl"
+                      className="catalog-product-card group relative rounded-2xl bg-white shadow-sm transition-all duration-300 hover:shadow-xl"
                     >
                       <Link href={`/product/${product.slug}`} className="block">
                         {/* ❤️ Wishlist */}
@@ -668,7 +741,7 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                         <div className="relative h-64 bg-[#f8f8f8] rounded-t-2xl overflow-hidden">
                           <Image
                             src={product.imageUrl || "/images/product-placeholder.svg"}
-                            alt={product.name}
+                            alt={formatProductName(product.name)}
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
                             className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
@@ -685,10 +758,10 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                         {/* INFO */}
                         <div className="p-4">
                           <h3 className="font-medium text-gray-900 group-hover:text-[#8b6f47] transition-colors">
-                            {product.name}
+                            {formatProductName(product.name)}
                           </h3>
                           <p className="text-[#a67c52] font-semibold mt-2 text-lg">
-                            {formatINR(product.price)}
+                            {formatCatalogPrice(product.price)}
                           </p>
 
                           <div className="flex justify-between mt-3 text-sm text-[#a67c52]">
@@ -700,10 +773,9 @@ export function CatalogPage({ page, selectedSubcategory }: CatalogPageProps) {
                           </div>
                         </div>
                       </Link>
-                    </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

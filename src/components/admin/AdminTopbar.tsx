@@ -16,6 +16,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useSiteIdentity } from "@/components/site-identity-provider";
 import { cn } from "@/lib/utils";
 import { studioPath } from "@/sanity/env";
 
@@ -48,6 +49,7 @@ function isActive(pathname: string, href: string) {
 
 export function AdminTopbar() {
   const pathname = usePathname();
+  const { siteIdentity } = useSiteIdentity();
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-4 sm:px-4">
@@ -62,14 +64,14 @@ export function AdminTopbar() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold tracking-tight text-stone-950">
-                      Jewellery Admin
+                      {siteIdentity.shortName} Admin
                     </p>
                     <Badge className="rounded-full border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-900">
                       Secure Workspace
                     </Badge>
                   </div>
                   <p className="text-xs text-stone-500">
-                    Modern control center for catalog, orders, and growth.
+                    {siteIdentity.siteName} control center for catalog, orders, and growth.
                   </p>
                 </div>
               </div>
@@ -95,6 +97,17 @@ export function AdminTopbar() {
                   <Link href="/" target="_blank" rel="noreferrer">
                     <Store className="size-4" />
                     Storefront
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full border-stone-300 bg-white/80 px-3"
+                >
+                  <Link href="/admin/dashboard/logo">
+                    <Sparkles className="size-4" />
+                    Branding
                   </Link>
                 </Button>
                 <Button

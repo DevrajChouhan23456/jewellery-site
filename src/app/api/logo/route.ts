@@ -1,36 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 import { createImageFileSchema, getZodErrorMessage } from "@/lib/api/validation";
-import cloudinary from "@/lib/cloudinary";
+import { uploadImage } from "@/lib/cloudinary";
+import { requireAdminApiAccess } from "@/server/auth/admin";
+import {
+  getSiteIdentity,
+  updateSiteIdentity,
+} from "@/server/services/site-identity";
 
 const FALLBACK_LOGO_URL = "/images/logo.avif";
-const SITE_LOGO_ID = "site-logo";
 const logoUploadSchema = createImageFileSchema({
   requiredMessage: "No file uploaded",
 });
 
-function configureCloudinary() {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+export async function POST(req: NextRequest) {
+  const unauthorized = await requireAdminApiAccess();
 
-  if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error("Cloudinary env vars are missing");
+  if (unauthorized) {
+    return unauthorized;
   }
 
-  cloudinary.config({
-    cloud_name: cloudName,
-    api_key: apiKey,
-    api_secret: apiSecret,
-    secure: true,
-  });
-}
-
-export async function POST(req: NextRequest) {
   try {
-    configureCloudinary();
-
     const data = await req.formData();
     const parsedFile = logoUploadSchema.safeParse(data.get("file"));
 
@@ -45,21 +35,24 @@ export async function POST(req: NextRequest) {
 
     const arrayBuffer = await file.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");
-    const mimeType = file.type;
-    const dataUri = `data:${mimeType};base64,${base64}`;
-
-    const result = await cloudinary.uploader.upload(dataUri, {
+    const imageUrl = await uploadImage(`data:${file.type};base64,${base64}`, {
       folder: "logos",
     });
-
-    await prisma.logo.upsert({
-      where: { id: SITE_LOGO_ID },
-      update: { imageUrl: result.secure_url },
-      create: { id: SITE_LOGO_ID, imageUrl: result.secure_url },
+    const currentSiteIdentity = await getSiteIdentity();
+    const updateResult = await updateSiteIdentity({
+      ...currentSiteIdentity,
+      logoUrl: imageUrl,
     });
 
+    if ("error" in updateResult) {
+      return NextResponse.json(
+        { error: updateResult.error },
+        { status: updateResult.status },
+      );
+    }
+
     return NextResponse.json(
-      { logoUrl: result.secure_url, logo: { url: result.secure_url } },
+      { logoUrl: imageUrl, logo: { url: imageUrl } },
       { status: 200 },
     );
   } catch (error: unknown) {
@@ -71,10 +64,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const logo = await prisma.logo.findFirst({
-      orderBy: { createdAt: "desc" },
-    });
-    const logoUrl = logo?.imageUrl ?? FALLBACK_LOGO_URL;
+    const siteIdentity = await getSiteIdentity();
+    const logoUrl = siteIdentity.logoUrl || FALLBACK_LOGO_URL;
 
     return NextResponse.json(
       { logoUrl, logo: { url: logoUrl } },

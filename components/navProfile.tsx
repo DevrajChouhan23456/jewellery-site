@@ -83,7 +83,7 @@ export default function ProfileMenu() {
                 </Link>
 
                 <Link
-                  href="/orders"
+                  href="/account/orders"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-gray-800 transition hover:bg-gray-50"
                 >

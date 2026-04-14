@@ -16,6 +16,12 @@ type FiltersProps = {
   setFilters: Dispatch<SetStateAction<CatalogFiltersState>>;
 };
 
+const materialFilterLabels: Record<string, string> = {
+  gold: "gold-tone",
+  diamond: "american diamond",
+  silver: "silver-tone",
+};
+
 function toggleFilter(
   type: "materials" | "categories",
   value: string,
@@ -36,9 +42,7 @@ function toggleFilter(
 
 export function Filters({ filters, setFilters }: FiltersProps) {
   return (
-    <div className="sticky top-24 space-y-8 rounded-2xl bg-white p-6 shadow-sm border">
-      
-      {/* HEADER */}
+    <div className="sticky top-24 space-y-8 rounded-2xl border bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Filters</h3>
         <button
@@ -58,7 +62,6 @@ export function Filters({ filters, setFilters }: FiltersProps) {
         </button>
       </div>
 
-      {/* PRICE */}
       <div>
         <p className="mb-3 text-sm font-medium text-gray-700">Price</p>
 
@@ -93,7 +96,6 @@ export function Filters({ filters, setFilters }: FiltersProps) {
         </div>
       </div>
 
-      {/* MATERIAL */}
       <div>
         <p className="mb-3 text-sm font-medium text-gray-700">Material</p>
 
@@ -105,20 +107,19 @@ export function Filters({ filters, setFilters }: FiltersProps) {
               <button
                 key={item}
                 onClick={() => toggleFilter("materials", item, setFilters)}
-                className={`px-4 py-1.5 text-sm rounded-full border transition ${
+                className={`rounded-full border px-4 py-1.5 text-sm transition ${
                   active
-                    ? "bg-black text-white border-black"
+                    ? "border-black bg-black text-white"
                     : "bg-white hover:bg-gray-100"
                 }`}
               >
-                {item}
+                {materialFilterLabels[item] ?? item}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* CATEGORY */}
       <div>
         <p className="mb-3 text-sm font-medium text-gray-700">Category</p>
 
@@ -130,9 +131,9 @@ export function Filters({ filters, setFilters }: FiltersProps) {
               <button
                 key={item}
                 onClick={() => toggleFilter("categories", item, setFilters)}
-                className={`px-4 py-1.5 text-sm rounded-full border transition ${
+                className={`rounded-full border px-4 py-1.5 text-sm transition ${
                   active
-                    ? "bg-black text-white border-black"
+                    ? "border-black bg-black text-white"
                     : "bg-white hover:bg-gray-100"
                 }`}
               >
@@ -143,7 +144,6 @@ export function Filters({ filters, setFilters }: FiltersProps) {
         </div>
       </div>
 
-      {/* SORT */}
       <div>
         <p className="mb-3 text-sm font-medium text-gray-700">Sort By</p>
 
@@ -159,8 +159,8 @@ export function Filters({ filters, setFilters }: FiltersProps) {
           }
         >
           <option value="latest">Latest</option>
-          <option value="price_asc">Price: Low → High</option>
-          <option value="price_desc">Price: High → Low</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
         </select>
       </div>
     </div>

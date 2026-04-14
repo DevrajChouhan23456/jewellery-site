@@ -37,24 +37,25 @@ export type CheckoutOrderSummary = {
   totalAmount: number;
 };
 
+type CheckoutErrorResult = {
+  code?: string;
+  error: string;
+  status: number;
+  unavailableProductIds?: string[];
+};
+
 type CheckoutResult =
   | {
       data: CheckoutOrderSummary;
       status: 200;
     }
-  | {
-      error: string;
-      status: number;
-    };
+  | CheckoutErrorResult;
 
 type CheckoutCartSnapshotResult =
   | {
       data: CheckoutCartSnapshotItem[];
     }
-  | {
-      error: string;
-      status: number;
-    };
+  | CheckoutErrorResult;
 
 function toCheckoutOrderSummary(order: {
   currency: string;
@@ -120,38 +121,103 @@ export async function getCheckoutCartSnapshot(
     },
   });
 
-  const productMap = new Map(
+  type ResolvedCheckoutLine = {
+    imageUrl: string | null;
+    name: string;
+    orderLineProductId: string;
+    unitPrice: number;
+  };
+
+  const productMap = new Map<string, ResolvedCheckoutLine>(
     products.map((product) => [
       product.id,
       {
         imageUrl: product.imageUrl ?? product.images[0] ?? null,
         name: product.name,
+        orderLineProductId: product.id,
         unitPrice: product.price,
       },
     ]),
   );
 
+  const unresolvedIds = checkoutProductIds.filter((id) => !productMap.has(id));
+
+  if (unresolvedIds.length > 0) {
+    const catalogProducts = await db.product.findMany({
+      where: { id: { in: unresolvedIds } },
+      select: {
+        id: true,
+        images: true,
+        name: true,
+        price: true,
+        slug: true,
+      },
+    });
+
+    if (catalogProducts.length > 0) {
+      const shopMatches = await db.shopPageProduct.findMany({
+        where: {
+          slug: { in: catalogProducts.map((p) => p.slug) },
+        },
+        select: {
+          id: true,
+          slug: true,
+          imageUrl: true,
+          images: true,
+          name: true,
+          price: true,
+        },
+      });
+
+      const shopBySlug = new Map(shopMatches.map((sp) => [sp.slug, sp]));
+
+      for (const catalog of catalogProducts) {
+        const shop = shopBySlug.get(catalog.slug);
+        if (!shop) {
+          continue;
+        }
+
+        productMap.set(catalog.id, {
+          imageUrl: shop.imageUrl ?? shop.images[0] ?? null,
+          name: shop.name,
+          orderLineProductId: shop.id,
+          unitPrice: shop.price,
+        });
+      }
+    }
+  }
+
   const snapshotItems: CheckoutCartSnapshotItem[] = [];
+  const unavailableProductIds: string[] = [];
 
   for (const item of cartItems) {
     const checkoutProductId = item.shopPageProductId ?? item.productId;
-    const product = productMap.get(checkoutProductId);
+    const resolved = productMap.get(checkoutProductId);
 
-    if (!product) {
-      return {
-        error:
-          "One or more products in your bag are no longer available for checkout. Please review your bag and try again.",
-        status: 409,
-      };
+    if (!resolved) {
+      unavailableProductIds.push(checkoutProductId);
+      continue;
     }
 
     snapshotItems.push({
-      imageUrl: product.imageUrl,
-      name: product.name,
-      productId: checkoutProductId,
+      imageUrl: resolved.imageUrl,
+      name: resolved.name,
+      productId: resolved.orderLineProductId,
       quantity: item.quantity,
-      unitPrice: product.unitPrice,
+      unitPrice: resolved.unitPrice,
     });
+  }
+
+  if (unavailableProductIds.length > 0) {
+    return {
+      code: "CHECKOUT_ITEMS_UNAVAILABLE",
+      error:
+        unavailableProductIds.length === 1
+          ? "One item in your bag is no longer available for checkout. Review your bag to continue."
+          : `${unavailableProductIds.length} items in your bag are no longer available for checkout. Review your bag to continue.`,
+      status: 409,
+      unavailableProductIds,
+    };
   }
 
   return { data: snapshotItems };

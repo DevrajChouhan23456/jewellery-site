@@ -61,12 +61,12 @@ export default async function CustomerLoginPage({
           <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-tight text-stone-950 sm:text-5xl">
             {isAdminMode
               ? "One sign-in system now protects both storefront and admin access."
-              : "Sign in once and keep your storefront session in sync."}
+              : "Continue with Google and move from bag to payment without friction."}
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--luxury-muted)]">
             {isAdminMode
               ? "Customers and administrators now share the same NextAuth session pipeline, with the role inside the JWT deciding whether protected dashboard routes and APIs stay locked or open."
-              : "Use OTP or Google to continue with a persistent session that stays in step across the storefront, cart recovery, and account pages."}
+              : "Customer sign-in now stays focused on a single Google flow, so wishlist recovery, bag sync, checkout, and payment all happen from one simple session."}
           </p>
         </section>
 
@@ -87,8 +87,8 @@ export default async function CustomerLoginPage({
               title={isAdminMode ? "Customer sign in" : "Welcome back"}
               description={
                 isAdminMode
-                  ? "Customers still use this same secure session flow, but non-admin accounts cannot enter dashboard routes."
-                  : "Use your mobile number or Google account to continue shopping."
+                  ? "Customers now use Google sign-in here, while non-admin accounts still stay blocked from dashboard routes."
+                  : "Continue with Google to shop, buy, and pay with one customer session."
               }
             />
           </div>

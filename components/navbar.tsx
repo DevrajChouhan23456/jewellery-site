@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { type FormEvent, useEffect, useState, useSyncExternalStore } from "react";
-import { Diamond, Heart, Store } from "lucide-react";
+import { type FormEvent, useState, useSyncExternalStore } from "react";
+import { Heart, Sparkles, Store } from "lucide-react";
 
+import { useSiteIdentity } from "@/components/site-identity-provider";
 import { useCartStore } from "@/lib/store";
 import CartButton from "./navbar/CartButton";
 import LogoSection from "./navbar/LogoSection";
@@ -18,13 +19,13 @@ type NavbarProps = {
 
 const iconLinks = [
   {
-    href: "/shop/diamond",
-    label: "Diamond collections",
-    icon: Diamond,
+    href: "/shop/thejoydressing",
+    label: "Style edits",
+    icon: Sparkles,
   },
   {
     href: "/contact",
-    label: "Store support",
+    label: "Help and support",
     icon: Store,
   },
   {
@@ -35,9 +36,9 @@ const iconLinks = [
 ] as const;
 
 const Navbar = ({ onLoginClick }: NavbarProps) => {
-  const [logoUrl, setLogoUrl] = useState<string>("/images/logo.avif");
   const [query, setQuery] = useState("");
   const { data: session } = useSession();
+  const { siteIdentity } = useSiteIdentity();
   const { openCart, getUniqueItemsCount } = useCartStore();
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -45,39 +46,27 @@ const Navbar = ({ onLoginClick }: NavbarProps) => {
     () => false,
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch("/api/logo", { signal: controller.signal })
-      .then((res) => res.json())
-      .then((data: { logoUrl?: string; logo?: { url?: string } }) => {
-        const nextUrl = data?.logoUrl ?? data?.logo?.url;
-
-        if (typeof nextUrl === "string" && nextUrl.length > 0) {
-          setLogoUrl(nextUrl);
-        }
-      })
-      .catch(() => {});
-
-    return () => controller.abort();
-  }, []);
-
   const onSubmitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/20 bg-white/90 backdrop-blur-md shadow-sm">
+    <header className="sticky top-0 z-50 border-b border-white/20 bg-white/90 shadow-sm backdrop-blur-md">
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <div className="flex h-[72px] items-center justify-between gap-6">
-          <LogoSection logoUrl={logoUrl} />
+          <LogoSection
+            logoUrl={siteIdentity.logoUrl}
+            siteName={siteIdentity.siteName}
+            shortName={siteIdentity.shortName}
+            tagline={siteIdentity.tagline}
+          />
 
           <SearchBar
             variant="desktop"
             query={query}
             onQueryChange={setQuery}
             onSubmit={onSubmitSearch}
-            placeholder="Search for diamond jewellery"
+            placeholder="Search artificial jewellery"
           />
 
           <div className="flex items-center gap-5 text-[#832729]">

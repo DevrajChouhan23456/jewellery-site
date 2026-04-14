@@ -36,7 +36,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <CustomerLoginForm
             onSuccess={onClose}
             title="Welcome"
-            description="Sign in to save your wishlist, recover your cart, and continue shopping."
+            description="Continue with Google to save your wishlist, recover your cart, and head straight to secure checkout."
           />
         </div>
       </div>

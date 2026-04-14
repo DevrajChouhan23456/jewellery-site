@@ -1,31 +1,35 @@
 import type { Metadata } from "next";
-import type { CSSProperties } from "react";
 import "./globals.css";
 
 import Providers from "./provider";
 import ClientLayout from "@/components/client-layout";
 import SiteShell from "@/components/site-shell";
-import { Toaster } from "react-hot-toast";
 import { initializeAutomation } from "@/server/automation-init";
+import { getSiteIdentity } from "@/server/services/site-identity";
 
-export const metadata: Metadata = {
-  title: "Tanishq | Fine Jewellery",
-  description:
-    "Shop from the finest collection of gold, diamond, and platinum jewellery.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const siteIdentity = await getSiteIdentity();
+
+  return {
+    title: `${siteIdentity.shortName} | ${siteIdentity.tagline}`,
+    description: `Shop artificial jewellery, gifting picks, and occasion-ready styles at ${siteIdentity.siteName}.`,
+  };
+}
 
 // Initialize automation on app start
 initializeAutomation().catch(console.error);
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const siteIdentity = await getSiteIdentity();
+
   return (
     <html lang="en">
       <body className="antialiased">
-        <Providers>
+        <Providers initialSiteIdentity={siteIdentity}>
           <SiteShell>
             <ClientLayout>
               {children}

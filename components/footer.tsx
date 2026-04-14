@@ -13,15 +13,15 @@ import {
 const shopLinks = [
   { label: "Rings", href: "/shop/rings" },
   { label: "Earrings", href: "/shop/earrings" },
-  { label: "Diamond", href: "/shop/diamond" },
-  { label: "Gold", href: "/shop/gold" },
+  { label: "Daily Wear", href: "/shop/glamdays" },
+  { label: "Occasion Wear", href: "/shop/jewellery" },
 ];
 
 const serviceLinks = [
-  { label: "Book an Appointment", href: "/shop/jewellery" },
+  { label: "Styling Help", href: "/contact" },
   { label: "Gift Guide", href: "/shop/gifting" },
-  { label: "Client Support", href: "/shop/jewellery" },
-  { label: "Care Tips", href: "/shop/thejoydressing" },
+  { label: "Client Support", href: "/contact" },
+  { label: "Care Tips", href: "/about" },
 ];
 
 const socialLinks = [
@@ -47,13 +47,15 @@ export default function Footer() {
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] text-amber-900">
               <Sparkles className="size-3.5" />
-              Fine Jewellery
+              Fashion Jewellery
             </div>
             <h2 className="mt-5 max-w-md text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">
-              Crafted to mark everyday elegance and once-in-a-lifetime moments.
+              Styled for festive dressing, easy gifting, and everyday glam.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-stone-600 sm:text-base">
-              Discover timeless gold, radiant diamonds, and thoughtful gifting pieces designed with modern Indian luxury in mind.
+              Discover lightweight artificial jewellery, gold-tone sets,
+              American Diamond sparkle, and statement accessories designed for
+              modern Indian styling.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -75,15 +77,15 @@ export default function Footer() {
             <div className="mt-8 grid gap-3 border-t border-stone-200 pt-6 text-sm text-stone-600 sm:grid-cols-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="size-4 text-amber-700" />
-                Certified quality
+                Quality-checked finish
               </div>
               <div className="flex items-center gap-2">
                 <Truck className="size-4 text-amber-700" />
-                Secure delivery
+                Easy delivery
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="size-4 text-amber-700" />
-                Store assistance
+                Styling support
               </div>
             </div>
           </div>
@@ -131,7 +133,8 @@ export default function Footer() {
                 Stay Connected
               </h3>
               <p className="mt-5 text-sm leading-7 text-stone-300">
-                Receive festive launches, bridal edits, and gifting inspirations with a quiet luxury touch.
+                Receive new drops, bridal-fashion edits, and styling ideas for
+                party looks, gifting, and festive outfits.
               </p>
 
               <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-stone-200">
@@ -142,7 +145,7 @@ export default function Footer() {
                 </div>
                 <div className="mt-2 flex items-center gap-2">
                   <MapPin className="size-4" />
-                  Jewellery Lounge, New Delhi
+                  Auraa Styling Desk, New Delhi
                 </div>
               </div>
 
@@ -163,7 +166,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 border-t border-stone-300/70 pt-6 text-sm text-stone-600 md:flex-row md:items-center md:justify-between">
-          <p>(C) 2026 Tanishq Jewellery. Designed for modern heirlooms.</p>
+          <p>(C) 2026 Auraa Fashion Jewellery. Styled for statement moments.</p>
           <div className="flex flex-wrap items-center gap-4">
             <Link href="/shop/jewellery" className="transition hover:text-stone-900">
               Privacy
@@ -171,7 +174,7 @@ export default function Footer() {
             <Link href="/shop/jewellery" className="transition hover:text-stone-900">
               Terms
             </Link>
-            <Link href="/shop/jewellery" className="transition hover:text-stone-900">
+            <Link href="/contact" className="transition hover:text-stone-900">
               Support
             </Link>
           </div>

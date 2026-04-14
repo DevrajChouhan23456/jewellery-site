@@ -122,38 +122,245 @@ const defaultHomepageSections: Record<
 > = {
   category: {
     eyebrow: "",
-    title: "Find Your Perfect Match",
-    subtitle: "Shop by Categories",
+    title: "Find Your Next Style Match",
+    subtitle: "Shop by style and occasion",
     description: "",
     ctaLabel: "",
     ctaHref: "",
   },
   trending: {
     eyebrow: "",
-    title: "Trending Now",
-    subtitle: "Jewellery pieces everyone's eyeing right now",
+    title: "Trending This Season",
+    subtitle: "Looks customers are styling right now",
     description: "",
     ctaLabel: "",
     ctaHref: "",
   },
   arrival: {
-    eyebrow: "500+ New Items",
+    eyebrow: "Fresh Drops",
     title: "New Arrivals",
     subtitle: "",
     description:
-      "New arrivals dropping daily. Explore the latest launches for gifting, celebration, and signature self-expression.",
-    ctaLabel: "Explore Latest Launches",
+      "New artificial jewellery drops for gifting, festive dressing, and easy everyday styling.",
+    ctaLabel: "Explore Latest Drops",
     ctaHref: "/shop/jewellery",
   },
   gender: {
     eyebrow: "",
     title: "Curated For You",
-    subtitle: "Shop by Gender",
+    subtitle: "Shop by mood and styling need",
     description: "",
     ctaLabel: "",
     ctaHref: "",
   },
 };
+
+const homepageCardOverrides: Record<
+  HomepageSectionKey,
+  Array<Partial<Pick<HomepageCard, "title" | "subtitle" | "link" | "badge">>>
+> = {
+  category: [
+    {
+      title: "Earrings",
+      subtitle: "Lightweight sparkle for daily outfits and party plans.",
+      link: "/shop/earrings",
+    },
+    {
+      title: "Rings",
+      subtitle: "Adjustable, stackable, and statement styles made to mix.",
+      link: "/shop/rings",
+    },
+    {
+      title: "Necklace Sets",
+      subtitle: "Layered sets that finish saree, suit, and lehenga looks.",
+      link: "/shop/jewellery",
+    },
+    {
+      title: "Bridal Sets",
+      subtitle: "Big-day glam without the real-gold spend.",
+      link: "/shop/jewellery",
+    },
+    {
+      title: "Bracelets",
+      subtitle: "Charms and cuffs for easy styling from day to night.",
+      link: "/shop/jewellery",
+    },
+    {
+      title: "Bangles",
+      subtitle: "Gold-tone and oxidised stacks for festive dressing.",
+      link: "/shop/jewellery",
+    },
+    {
+      title: "Pendants",
+      subtitle: "Simple styles for gifting and everyday wear.",
+      link: "/shop/jewellery",
+    },
+    {
+      title: "View All",
+      subtitle: "Artificial jewellery styles for every mood",
+      link: "/shop/jewellery",
+      badge: "Shop",
+    },
+  ],
+  trending: [
+    {
+      title: "Wedding Guest Glam",
+      subtitle: "Statement sparkle for reception fits, sangeet looks, and festive dressing.",
+      link: "/shop/jewellery",
+    },
+    {
+      title: "Gift-Ready Picks",
+      subtitle: "Budget-friendly pieces that still feel celebratory and polished.",
+      link: "/shop/gifting",
+    },
+    {
+      title: "Daily Wear Edit",
+      subtitle: "Lightweight styles that move easily from office hours to dinner plans.",
+      link: "/shop/glamdays",
+    },
+  ],
+  arrival: [
+    {
+      title: "New Kundan Sets",
+      subtitle: "Fresh festive drops for wedding season and dressy celebrations.",
+      link: "/shop/jewellery",
+    },
+    {
+      title: "Fresh Minimal Picks",
+      subtitle: "Easy everyday sparkle with lightweight styling appeal.",
+      link: "/shop/glamdays",
+    },
+  ],
+  gender: [
+    {
+      title: "For Her",
+      subtitle: "Layered sets, statement sparkle, and easy styling favourites.",
+      link: "/shop/jewellery",
+    },
+    {
+      title: "For Him",
+      subtitle: "Bold chains, rings, and gifting picks with a modern edge.",
+      link: "/shop/jewellery",
+    },
+    {
+      title: "For Kids",
+      subtitle: "Playful gifting styles with lightweight finishes and soft shine.",
+      link: "/shop/jewellery",
+    },
+  ],
+};
+
+const heroSlideOverrides: Array<
+  Pick<HeroSlideContent, "badge" | "title" | "subtitle" | "ctaLabel" | "ctaHref">
+> = [
+  {
+    badge: "Floral Party Edit",
+    title: "Floral sparkle for party-ready styling",
+    subtitle:
+      "Lightweight statement pieces for brunch fits, mehendi nights, and festive dressing.",
+    ctaLabel: "Shop edit",
+    ctaHref: "/shop/earrings",
+  },
+  {
+    badge: "Gold-Tone Layers",
+    title: "Gold-tone layers without the real-gold price tag",
+    subtitle:
+      "Build festive looks with stackable bangles, layered chains, and occasion-ready sets.",
+    ctaLabel: "Shop edit",
+    ctaHref: "/shop/jewellery",
+  },
+  {
+    badge: "American Diamond Edit",
+    title: "American Diamond shine for gifting and occasions",
+    subtitle:
+      "Choose polished pendants, rings, and earrings that bring instant sparkle to every event look.",
+    ctaLabel: "Shop edit",
+    ctaHref: "/shop/jewellery",
+  },
+];
+
+const shopPageOverrides = {
+  jewellery: {
+    title: "All Jewellery",
+    subtitle: "Explore our full edit of artificial jewellery.",
+    heroEyebrow: "Signature Style Edits",
+    heroTitle: "Find artificial jewellery for festive looks, gifting, and everyday glam.",
+    heroDescription:
+      "Browse earrings, rings, necklace sets, bangles, gifting picks, and occasion-ready styles curated for modern Indian dressing.",
+    heroCtaLabel: "Explore All Jewellery",
+    featureTitles: ["Earrings", "Necklace Sets", "Rings", "Gift Sets"],
+  },
+  gold: {
+    title: "Gold-Tone",
+    subtitle: "Gold-tone fashion jewellery with festive shine.",
+    heroEyebrow: "Gold-Tone Edit",
+    heroTitle: "Gold-tone pieces that bring wedding and festive outfits to life.",
+    heroDescription:
+      "Browse necklace sets, bangles, earrings, and layered styles designed for celebration looks and budget-friendly styling.",
+    heroCtaLabel: "Shop Gold-Tone",
+    featureTitles: ["Daily Wear", "Gifting", "Bridal Sets", "Layered Chains"],
+  },
+  diamond: {
+    title: "American Diamond",
+    subtitle: "American Diamond sparkle for parties, gifting, and occasion wear.",
+    heroEyebrow: "Statement Sparkle",
+    heroTitle: "American Diamond styles made for polished event dressing.",
+    heroDescription:
+      "Build your look with sparkling pendants, earrings, rings, and gifting favourites that bring instant shine without feeling heavy.",
+    heroCtaLabel: "Explore Sparkle",
+    featureTitles: ["Earrings", "Pendants", "Rings", "Gift Picks"],
+  },
+  earrings: {
+    title: "Earrings",
+    subtitle: "Studs, drops, hoops, and festive jhumkas for every plan.",
+    heroEyebrow: "Ear Candy",
+    heroTitle: "Statement earrings that frame every look with easy sparkle.",
+    heroDescription:
+      "Discover party drops, floral accents, gold-tone hoops, and gifting-friendly silhouettes designed for effortless styling.",
+    heroCtaLabel: "Shop Earrings",
+    featureTitles: ["Studs", "Drops", "Hoops", "Bridal Glam"],
+  },
+  rings: {
+    title: "Rings",
+    subtitle: "Adjustable rings for gifting, stacking, and personal style.",
+    heroEyebrow: "Stack And Style",
+    heroTitle: "Find rings that feel playful, polished, and easy to wear.",
+    heroDescription:
+      "From cocktail rings to stackable styles, explore sculpted silhouettes designed for gifting and occasion dressing.",
+    heroCtaLabel: "Shop Rings",
+    featureTitles: ["Daily Rings", "Occasion Rings", "Couple Rings", "Gold-Tone Rings"],
+  },
+  gifting: {
+    title: "Gifting",
+    subtitle: "Thoughtful jewellery gifts for heartfelt milestones.",
+    heroEyebrow: "Gift With Sparkle",
+    heroTitle: "From birthdays to bridesmaid boxes, choose a gift that feels special.",
+    heroDescription:
+      "Explore keepsakes, festive picks, daily-wear styles, and memorable gifting edits curated for every celebration.",
+    heroCtaLabel: "Explore Gifts",
+    featureTitles: ["Birthday Gifts", "Return Gifts", "For Him", "For Her"],
+  },
+  glamdays: {
+    title: "Daily Wear",
+    subtitle: "Lightweight sparkle for polished everyday styling.",
+    heroEyebrow: "Everyday Icons",
+    heroTitle: "Daily-wear jewellery that feels easy, modern, and outfit-friendly.",
+    heroDescription:
+      "Choose sleek pendants, stackable rings, versatile earrings, and subtle accents designed to move with your routine.",
+    heroCtaLabel: "Shop Daily Wear",
+    featureTitles: ["Stackables", "Everyday Chains", "Subtle Studs", "Office Edit"],
+  },
+  thejoydressing: {
+    title: "Collections",
+    subtitle: "Curated artificial jewellery stories with a distinct point of view.",
+    heroEyebrow: "Collection Stories",
+    heroTitle: "Explore signature edits designed around mood, moment, and styling.",
+    heroDescription:
+      "Dive into floral stories, gifting edits, American Diamond sparkle, and celebration-ready collections.",
+    heroCtaLabel: "Explore Collections",
+    featureTitles: ["Floral Bloom", "Sparkle Edit", "Festive Gold-Tone", "Joyful Gifting"],
+  },
+} as const;
 
 function normalizeHomepageSection(
   key: HomepageSectionKey,
@@ -201,6 +408,102 @@ function normalizeHeroSlide(
   } satisfies HeroSlideContent;
 }
 
+function applyHomepageCardOverrides(
+  section: HomepageSectionKey,
+  items: HomepageCard[],
+) {
+  const overrides = homepageCardOverrides[section];
+
+  return items.map((item, index) => {
+    const override = overrides[index];
+
+    if (!override) {
+      return item;
+    }
+
+    return {
+      ...item,
+      title: override.title ?? item.title,
+      subtitle: override.subtitle ?? item.subtitle,
+      link: override.link ?? item.link,
+      badge: override.badge ?? item.badge,
+    };
+  });
+}
+
+function applyHomepageBranding(content: {
+  categories: HomepageCard[];
+  trending: HomepageCard[];
+  arrivals: HomepageCard[];
+  gender: HomepageCard[];
+  heroSlides: HeroSlideContent[];
+  sections: Record<HomepageSectionKey, HomepageSectionContent>;
+  servicePillars: typeof defaultServicePillars;
+  reassuranceHighlights: typeof defaultReassuranceHighlights;
+  conciergeEyebrow: string;
+  conciergeTitle: string;
+  conciergeActions: typeof defaultConciergeActions;
+  stylingJournalEyebrow: string;
+  stylingJournalTitle: string;
+  stylingTips: string[];
+}) {
+  return {
+    ...content,
+    categories: applyHomepageCardOverrides("category", content.categories),
+    trending: applyHomepageCardOverrides("trending", content.trending),
+    arrivals: applyHomepageCardOverrides("arrival", content.arrivals),
+    gender: applyHomepageCardOverrides("gender", content.gender),
+    heroSlides: content.heroSlides.map((slide, index) => ({
+      ...slide,
+      ...(heroSlideOverrides[index] ?? {}),
+    })),
+    sections: {
+      category: { ...content.sections.category, ...defaultHomepageSections.category },
+      trending: { ...content.sections.trending, ...defaultHomepageSections.trending },
+      arrival: { ...content.sections.arrival, ...defaultHomepageSections.arrival },
+      gender: { ...content.sections.gender, ...defaultHomepageSections.gender },
+    },
+    servicePillars: defaultServicePillars.map((item) => ({ ...item })),
+    reassuranceHighlights: defaultReassuranceHighlights.map((item) => ({
+      ...item,
+    })),
+    conciergeEyebrow: defaultConciergeEyebrow,
+    conciergeTitle: defaultConciergeTitle,
+    conciergeActions: defaultConciergeActions.map((item) => ({ ...item })),
+    stylingJournalEyebrow: defaultStylingJournalEyebrow,
+    stylingJournalTitle: defaultStylingJournalTitle,
+    stylingTips: [...defaultStylingTips],
+  };
+}
+
+function applyShopPageBranding<
+  T extends {
+    slug: string;
+    features?: Array<{ title: string }>;
+  },
+>(page: T) {
+  const override =
+    shopPageOverrides[page.slug as keyof typeof shopPageOverrides];
+
+  if (!override) {
+    return page;
+  }
+
+  return {
+    ...page,
+    title: override.title,
+    subtitle: override.subtitle,
+    heroEyebrow: override.heroEyebrow,
+    heroTitle: override.heroTitle,
+    heroDescription: override.heroDescription,
+    heroCtaLabel: override.heroCtaLabel,
+    features: page.features?.map((feature, index) => ({
+        ...feature,
+        title: override.featureTitles[index] ?? feature.title,
+      })),
+  };
+}
+
 export async function getHomepageCards(section: HomepageSectionKey) {
   const items: CuratedItem[] = await prisma.curatedItem.findMany({
     where: { section },
@@ -222,7 +525,7 @@ export async function getHomepageContent() {
   const sanityContent = await getSanityHomepageContent();
 
   if (sanityContent) {
-    return sanityContent;
+    return applyHomepageBranding(sanityContent);
   }
 
   const [categories, trending, arrivals, gender, heroSlides, sectionRecords]: [
@@ -255,7 +558,7 @@ export async function getHomepageContent() {
     ]),
   );
 
-  return {
+  return applyHomepageBranding({
     categories,
     trending,
     arrivals,
@@ -278,14 +581,14 @@ export async function getHomepageContent() {
     stylingJournalEyebrow: defaultStylingJournalEyebrow,
     stylingJournalTitle: defaultStylingJournalTitle,
     stylingTips: [...defaultStylingTips],
-  };
+  });
 }
 
 export async function getShopPageData(slug: string) {
   const sanityPage = await getSanityShopPageData(slug);
 
   if (sanityPage) {
-    return sanityPage;
+    return applyShopPageBranding(sanityPage);
   }
 
   const page = await prisma.shopPage.findUnique({
@@ -294,7 +597,7 @@ export async function getShopPageData(slug: string) {
   });
 
   // ✅ IF CMS PAGE EXISTS → USE IT
-  if (page) return page;
+  if (page) return applyShopPageBranding(page);
 
   // 🔥 FALLBACK → FETCH PRODUCTS
   const products = await prisma.product.findMany({
@@ -310,16 +613,16 @@ export async function getShopPageData(slug: string) {
   if (products.length === 0) return null;
 
   // ✅ RETURN "FAKE CMS PAGE"
-  return {
+  return applyShopPageBranding({
     id: `fallback-${slug}`,
     slug,
     title: slug,
     subtitle: "",
     heroEyebrow: "",
-    heroTitle: `${slug} Jewellery`,
-    heroDescription: `Explore ${slug} jewellery collection`,
+    heroTitle: `${slug} edit`,
+    heroDescription: `Explore the ${slug} fashion jewellery collection`,
     heroImageUrl: products[0]?.images?.[0] ?? "",
-    heroCtaLabel: "Shop Now",
+    heroCtaLabel: "Shop edit",
     heroCtaHref: `/shop/${slug}`,
     resultCount: products.length,
     features: [],
@@ -333,7 +636,7 @@ export async function getShopPageData(slug: string) {
       lowStockText: "",
       order: index,
     })),
-  };
+  });
 }
 
 export async function getFilteredProducts({
@@ -344,10 +647,18 @@ export async function getFilteredProducts({
   maxPrice,
   materials,
   categories,
-}: any) {
+}: {
+  slug?: string;
+  page?: number;
+  sort?: string;
+  minPrice?: number | string;
+  maxPrice?: number | string;
+  materials?: string[];
+  categories?: string[];
+}) {
   console.log('[DEBUG] getFilteredProducts called with:', { slug, page, sort, minPrice, maxPrice, materials, categories: categories?.length });
 
-  const where: any = {};
+  const where: Prisma.ProductWhereInput = {};
 
   if (slug && slug !== 'all') {
     where.category = { 
